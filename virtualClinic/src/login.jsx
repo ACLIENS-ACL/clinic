@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   MDBBtn,
@@ -23,21 +23,25 @@ function App() {
     borderBottomRightRadius: '.3rem',
   };
 
-  const [email, setEmail] = useState(''); // Initialize state for email
-  const [password, setPassword] = useState(''); // Initialize state for password
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [userType, setUserType] = useState('patient'); 
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
+    console.log("hellooo");
     e.preventDefault();
     axios
-      .post('http://localhost:3001/login', {
-        email,
-        password
-      })
+      .post(`http://localhost:3001/login-${userType}`, { username, password })
       .then(result => {
-        console.log(result);
-        if (result.data === "Success") { // Use result.data to check the response data
-          navigate('/'); // Navigate to the home page after successful login
+        if (result.data === 'Success') {
+          console.log("Login Successful");
+          if (userType.toLowerCase() === "admin") { // Fix the comparison
+            alert(userType);
+            navigate('/admin');
+          } else {
+            navigate('/register');
+          }
         }
       })
       .catch(err => {
@@ -45,6 +49,7 @@ function App() {
         // Handle error
       });
   };
+  
 
   return (
     <MDBContainer className="my-5" style={gradientFormStyle}>
@@ -58,17 +63,27 @@ function App() {
             </div>
             <p>Please login to your account</p>
             <form onSubmit={handleSubmit}>
-              <MDBInput wrapperClass='mb-4' label='Email address' id='form1' type='email' value={email} onChange={(e) => setEmail(e.target.value)} />
+              <MDBInput wrapperClass='mb-4' label='Username' id='form1' type='username' value={username} onChange={(e) => setUsername(e.target.value)} />
               <MDBInput wrapperClass='mb-4' label='Password' id='form2' type='password' value={password} onChange={(e) => setPassword(e.target.value)} />
               <div className="text-center pt-1 mb-5 pb-1">
-                <MDBBtn className="mb-4 w-100" style={gradientCustom2Style} type="submit">Sign in</MDBBtn>
+                <div className="mb-3">
+                  <label className="form-label">User Type:</label>
+                  <select className="form-select" value={userType} onChange={(e) => setUserType(e.target.value)}>
+                    <option value="patient" onChange={(e) => setUserType("patient")}>Patient</option >
+                    <option value="doctor" onChange={(e) => setUserType("doctor")}>Doctor</option>
+                    <option value="admin" onChange={(e) => setUserType("admin")}>Admin</option>
+                  </select>
+                </div>
+                <MDBBtn className="mb-4 w-100" style={gradientCustom2Style} type="submit">
+                  Sign in
+                </MDBBtn>
                 <a className="text-muted" href="#!">Forgot password?</a>
               </div>
             </form>
             <div className="d-flex flex-row align-items-center justify-content-center pb-4 mb-4">
               <p className="mb-0">Don't have an account?</p>
               <Link to="/register">
-                <MDBBtn outline className='mx-2' color='danger'>
+                <MDBBtn outline className='mx-2' color='danger' onSubmit={handleSubmit}>
                   Sign Up!
                 </MDBBtn>
               </Link>
