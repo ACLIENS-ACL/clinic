@@ -1,14 +1,29 @@
-// Import necessary modules and models
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const session = require('express-session');
 const PatientsModel = require('./models/patients');
 const DoctorsModel = require('./models/doctors');
-const AdminsModel=require('./models/admins');
+const AdminsModel = require('./models/admins');
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+// Enable CORS with credentials option
+app.use(cors({ credentials: true, origin: true }));
+app.use(
+  session({
+    secret: 'your-secret-key', // Change this to a secret key for session encryption
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }, // Set secure to true if using HTTPS
+  })
+);
+
+var logged = {
+  username: "",
+  in: "",
+  type: ""
+};
 
 mongoose.connect('mongodb://localhost:27017/clinic');
 
@@ -34,6 +49,9 @@ app.post('/login-doctor', (req, res) => {
         .then(user => {
           if (user) {
             if (user.password === password) {
+              logged.in=true;
+              logged.username=username;
+              logged.type="doctor";
               res.json("Success");
             } else {
               res.json("Password incorrect");
@@ -51,6 +69,9 @@ app.post('/login-doctor', (req, res) => {
         .then(user => {
           if (user) {
             if (user.password === password) {
+              logged.in=true;
+              logged.username=username;
+              logged.type="patient";
               res.json("Success");
             } else {
               res.json("Password incorrect");
@@ -65,14 +86,21 @@ app.post('/login-doctor', (req, res) => {
   app.post('/login-admin', (req, res) => {
     const {username, password} = req.body;
     if(username==="admin"&&password=="admin"){
+        logged.in=true;
+        logged.username="admin";
+        logged.type="admin";
         res.json("Success");
-    }
+        
+      }
+    
     else{
         AdminsModel.findOne({ username: username })
         .then(user => {
-          alert(user.username)
           if (user) {
             if (user.password === password) {
+              logged.in=true;
+              logged.username=username;
+              logged.type="admin";
               res.json("Success");
             } else {
               res.json("Password incorrect");
@@ -82,6 +110,11 @@ app.post('/login-doctor', (req, res) => {
           }
         })
   }});
+
+  app.get('/get-user-type', (req, res) => {
+    res.json(logged);
+  });
+
   app.post('/add-admin', async (req, res) => {
   try {
     const adminData = req.body;
@@ -204,7 +237,6 @@ app.get('/get-doctors', async (req, res) => {
   }
 });
 
-// POST endpoint to remove a doctor by ID
 app.post('/remove-doctor/:doctorId', async (req, res) => {
   const doctorId = req.params.doctorId;
 
@@ -216,6 +248,7 @@ app.post('/remove-doctor/:doctorId', async (req, res) => {
     res.status(500).json({ message: 'An error occurred while removing the doctor.' });
   }
 });
+
 //view list of all specfic doctor patients (Req 33)
 app.get('/get-my-patients', async (req, res) => {
   const doctorId = req.params.doctorId;
@@ -263,6 +296,53 @@ app.get('/select-patient/:doctorId/:patientId', async (req, res) => {
   res.json(patient);
 
 }); 
-
   
+  //view list of all specfic doctor patients (Req 33)
+app.get('/get-my-patients', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const patients = await PatientsModel.find({ doctorId: doctorId });
+  res.json(patients);
+});
+
+// the doctor search for the patient by his name (req 34)
+app.get('/search-patient/:doctorId/:name', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const name = req.params.name;
+  const patients = await PatientsModel.find({ doctorId: doctorId, name: name });
+  res.json(patients);
+});
+// filter patients based on upcoming appointments(req 35)
+app.get('/upcoming-appointments/:doctorId', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const patients = await PatientsModel.find({ doctorId: doctorId });
+  const upcomingAppointments = patients.filter(patient => patient.appointments[0].date > Date.now());
+  upcomingAppointments.sort((a, b) => a.appointments[0].date - b.appointments[0].date);
+  res.json(upcomingAppointments);
+});
+//select patient from list of patients(req 36)
+app.get('/select-patient/:doctorId/:patientId', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  const patientId = req.params.patientId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const patient = await PatientsModel.findOne({ doctorId: doctorId, _id: patientId });
+
+  if (!mongoose.Types.ObjectId.isValid(patientId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+
+  res.json(patient);
+
+}); 
+
   app.listen(3001,'localhost')
