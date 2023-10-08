@@ -249,6 +249,100 @@ app.post('/remove-doctor/:doctorId', async (req, res) => {
   }
 });
 
+//view list of all specfic doctor patients (Req 33)
+app.get('/get-my-patients', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const patients = await PatientsModel.find({ doctorId: doctorId });
+  res.json(patients);
+});
 
+// the doctor search for the patient by his name (req 34)
+app.get('/search-patient/:doctorId/:name', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const name = req.params.name;
+  const patients = await PatientsModel.find({ doctorId: doctorId, name: name });
+  res.json(patients);
+});
+// filter patients based on upcoming appointments(req 35)
+app.get('/upcoming-appointments/:doctorId', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const patients = await PatientsModel.find({ doctorId: doctorId });
+  const upcomingAppointments = patients.filter(patient => patient.appointments[0].date > Date.now());
+  upcomingAppointments.sort((a, b) => a.appointments[0].date - b.appointments[0].date);
+  res.json(upcomingAppointments);
+});
+//select patient from list of patients(req 36)
+app.get('/select-patient/:doctorId/:patientId', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  const patientId = req.params.patientId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const patient = await PatientsModel.findOne({ doctorId: doctorId, _id: patientId });
+
+  if (!mongoose.Types.ObjectId.isValid(patientId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+
+  res.json(patient);
+
+}); 
   
+  //view list of all specfic doctor patients (Req 33)
+app.get('/get-my-patients', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const patients = await PatientsModel.find({ doctorId: doctorId });
+  res.json(patients);
+});
+
+// the doctor search for the patient by his name (req 34)
+app.get('/search-patient/:doctorId/:name', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const name = req.params.name;
+  const patients = await PatientsModel.find({ doctorId: doctorId, name: name });
+  res.json(patients);
+});
+// filter patients based on upcoming appointments(req 35)
+app.get('/upcoming-appointments/:doctorId', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const patients = await PatientsModel.find({ doctorId: doctorId });
+  const upcomingAppointments = patients.filter(patient => patient.appointments[0].date > Date.now());
+  upcomingAppointments.sort((a, b) => a.appointments[0].date - b.appointments[0].date);
+  res.json(upcomingAppointments);
+});
+//select patient from list of patients(req 36)
+app.get('/select-patient/:doctorId/:patientId', async (req, res) => {
+  const doctorId = req.params.doctorId;
+  const patientId = req.params.patientId;
+  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+  const patient = await PatientsModel.findOne({ doctorId: doctorId, _id: patientId });
+
+  if (!mongoose.Types.ObjectId.isValid(patientId)) {
+    return res.status(404).json({error:'Invalid ID'});
+  }
+
+  res.json(patient);
+
+}); 
+
   app.listen(3001,'localhost')
