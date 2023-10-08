@@ -1,25 +1,8 @@
-import React, { useEffect } from 'react';
-import { Link, useNavigate  } from 'react-router-dom';
-import axios from 'axios';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { MDBBtn, MDBCard, MDBCardBody, MDBCardTitle, MDBCardText, MDBContainer, MDBRow, MDBCol } from 'mdb-react-ui-kit';
 
-
 function AdminDashboard() {
-
-  const navigate = useNavigate();
-  useEffect(() => {
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`)
-      .then((response) => {
-        const responseData = response.data;
-        if (responseData.type !== "admin" || responseData.in !== true) {
-          navigate('/login')
-          return null;
-        }
-      })
-  }, []);
-
-  
   return (
     <MDBContainer className="mt-5">
       <MDBRow className="justify-content-center">
