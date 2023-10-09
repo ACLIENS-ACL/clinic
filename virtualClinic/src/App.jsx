@@ -9,6 +9,8 @@ import EditAdmins from './editAdmins'
 import EditPatients from './editPatients'
 import EditDoctors from './editDoctors'
 import Doctor from './doctor'
+import Packages from './healthPackages'
+import DoctorInfo from './editInfo'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 function App() {
@@ -24,6 +26,8 @@ function App() {
         <Route path="/edit-patients" element={<EditPatients />} />
         <Route path="/edit-doctors" element={<EditDoctors />} />
         <Route path="/doctor" element={<Doctor />} />
+        <Route path="/modify-packages" element={<Packages />} />
+        <Route path="/edit-doctor-info" element={<DoctorInfo />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>

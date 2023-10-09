@@ -5,6 +5,7 @@ const session = require('express-session');
 const PatientsModel = require('./models/patients');
 const DoctorsModel = require('./models/doctors');
 const AdminsModel = require('./models/admins');
+const PackagesModel = require('./models/packages');
 
 const app = express();
 app.use(express.json());
@@ -183,14 +184,13 @@ app.post('/approve-doctor/:id', async (req, res) => {
 
   app.get('/get-admins', async (req, res) => {
     try {
-      const admins = await AdminsModel.find();
+      const admins = await AdminsModel.find({ username: { $ne: logged.username } });
       res.json(admins);
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'An error occurred while fetching admins.' });
     }
   });
-  
   // POST endpoint to remove an admin by ID
   app.post('/remove-admin/:adminId', async (req, res) => {
     const adminId = req.params.adminId;
@@ -344,5 +344,94 @@ app.get('/select-patient/:doctorId/:patientId', async (req, res) => {
   res.json(patient);
 
 }); 
+app.get('/health-packages', async (req, res) => {
+  try {
+    const packages = await PackagesModel.find();
+    res.json(packages);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
+// Retrieve a specific health package by ID
+app.get('/health-packages/:packageId', async (req, res) => {
+  try {
+    const packageId = req.params.packageId;
+    const package = await PackagesModel.findById(packageId);
+    if (!package) {
+      res.status(404).json({ error: 'Package not found' });
+    } else {
+      res.json(package);
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create a new health package
+app.post('/health-packages', async (req, res) => {
+  try {
+    console.log(req.body)
+    const newPackage = new PackagesModel(req.body);
+    await newPackage.save();
+    const packages = await PackagesModel.find();
+    res.json(packages);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update an existing health package by ID
+app.put('/health-packages/:editingPackageId', async (req, res) => {
+  try {
+    const editingPackageId = req.params.editingPackageId;
+    const updatedPackage = await PackagesModel.findByIdAndUpdate(
+      editingPackageId,
+      req.body,
+      { new: true }
+    );
+    if (!updatedPackage) {
+      res.status(404).json({ error: 'Package not found' });
+    } else {
+      const packages = await PackagesModel.find();
+      res.json(packages);
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete a health package by ID
+app.delete('/health-packages/:packageId', async (req, res) => {
+  try {
+    const packageId = req.params.packageId;
+    await PackagesModel.findByIdAndDelete(packageId);
+    const packages = await PackagesModel.find();
+    res.json(packages);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/get-doctor-info', async (req, res) => {
+  try {
+    const doctorInfo = await DoctorsModel.findOne({ username: logged.username });
+    res.json(doctorInfo);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred while fetching doctor info.' });
+  }
+});
+
+app.put('/update-doctor-info', async (req, res) => {
+  const { affiliation, hourlyRate, email } = req.body;
+
+  try {
+    await DoctorsModel.updateOne({ username: logged.username }, { affiliation, hourlyRate, email });
+    res.json({ message: 'Doctor info updated successfully.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred while updating doctor info.' });
+  }
+});
   app.listen(3001,'localhost')

@@ -35,10 +35,13 @@ function App() {
       .post(`http://localhost:3001/login-${userType}`, { username, password })
       .then(result => {
         if (result.data === 'Success') {
-          console.log("Login Successful");
-          if (userType.toLowerCase() === "admin") { // Fix the comparison
+          if (userType.toLowerCase() === "admin") { 
             alert(userType);
             navigate('/admin');
+          }
+          else if (userType.toLowerCase() === "doctor") { 
+            alert(userType);
+            navigate('/doctor');
           } else {
             navigate('/register');
           }
