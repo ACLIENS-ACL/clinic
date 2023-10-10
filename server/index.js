@@ -6,6 +6,7 @@ const DoctorsModel = require('./models/doctors');
 const AdminsModel = require('./models/admins');
 const PackagesModel = require('./models/packages');
 const AppointmentsModel=require('./models/appointment');
+const PrescriptionModel=require('./models/prescriptions');
 
 const app = express();
 
@@ -20,7 +21,15 @@ var logged = {
   type: ""
 };
 
-mongoose.connect('mongodb://localhost:27017/clinic');
+//connection to mongodb
+
+mongoose.connect('mongodb://0.0.0.0:27017/clinic', { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => {
+    console.log('Connected to MongoDB');
+  })
+  .catch(error => {
+    console.error('Error connecting to MongoDB:', error);
+  });
 
 // Register route for patients
 app.post('/register-patient', (req, res) => {
@@ -383,4 +392,101 @@ app.put('/update-doctor-info', async (req, res) => {
     res.status(500).json({ message: 'An error occurred while updating doctor info.' });
   }
 });
+
+
+//Dina
+//view a list of all my Prescriptions   (Req 54)
+
+app.post('/pre', async (req, res) => {
+  try {
+    const preData = req.body;
+    const newPrescription = new PrescriptionModel(preData);
+
+    await newPrescription.save();
+
+    res.json({ message: 'Prescription added successfully' });
+  } catch (error) {
+    console.error('Error: ', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
+//--------------------------
+//view a list of all my Prescriptions   (Req 54)
+
+app.get('/get-prescriptions/:patientID', async (req, res) => {
+  try {
+    const patientID = req.params.patientID;
+    const prescriptions = await PrescriptionModel.find({ patientID });
+
+    if (!prescriptions || prescriptions.length === 0) {
+      return res.status(404).json({ message: 'No prescriptions found for the patient' });
+    }
+  
+    res.json(prescriptions);
+  } catch (error) {
+    console.error('Error: ', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+//filter prescriptions based on date or doctor or filled or unfilled   (Req 55)
+
+app.get('/filter-prescriptions', async (req, res) => {
+    try {
+      let query = {};
+  
+      if (req.query.startDate && req.query.endDate ) {
+        const startDate = new Date(req.query.startDate);
+        const endDate = new Date(req.query.endDate);
+        if (endDate < startDate) {
+          return res.status(400).json({ message: 'endDate must be greater than or equal to startDate' });
+        }
+        query.Date = {
+          $gte: startDate,
+          $lte: endDate
+        };
+      } else if (req.query.date) {
+        // Use this block if you want to filter by a single date
+        query.Date = new Date(req.query.date);
+      }
+  
+      if (req.query.doctorID) {
+        query.doctorID = req.query.doctorID;
+      }
+  
+      if (req.query.status) {
+        query.Status = req.query.status;
+      }
+  
+      const prescriptions = await PrescriptionModel.find(query);
+      res.json(prescriptions);
+  } catch (error) {
+    console.error('Error: ', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+//select a prescription from my list of perscriptions (REQ 56)
+app.get('/select-prescriptions/:prescriptionID', async (req, res) => {
+  try {
+    const prescriptionID = req.params.prescriptionID;
+    const prescription = await PrescriptionModel.findById(prescriptionID);
+
+    if (!prescription) {
+      return res.status(404).json({ message: 'Prescription not found' });
+    }
+
+    res.status(200).json({prescription});
+  } catch (error) {
+    console.error('Error: ', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
   app.listen(3001,'localhost')
