@@ -15,6 +15,12 @@ const AppointmentSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+  status:  {
+    type: string,
+    default: 'schdeuled',
+    enum: ['scheduled', 'cancelled', 'completed'],
+    required: true,
+  },
 });
 
 const AppointmentModel = mongoose.model('appointments', AppointmentSchema);

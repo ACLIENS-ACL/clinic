@@ -507,4 +507,90 @@ app.put("/update-family-member",async (req,res)=>{
     res.status(500).json({message:"An error occured while updating family members."});
   }});
 
+  
+  // view family memebers
+app.get('/view-family-members' , async (req, res) => {
+  try {
+    const familyMemberIds = patient.familyMembers;
+    const familymem = await PatientsModel.find({  _id: { $in: familyMemberIds } } );
+    res.json(familymem);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred while fetching family members ' });
+  }
+} );
+
+// filter appointments by date/status for doc
+app.get('/doctors/:doctorId/appointments', async (req, res) => {
+  try {
+    const doctorId = req.params.doctorId;
+    const { date, status } = req.query;
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+    const query = { doctorId };
+    if (date) {
+      query.date = new Date(date);
+    }
+    if (status) {
+      query.status = status;
+    }
+    const appointments = await AppointmentsModel.find(query);
+    res.json(appointments);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred while filtering appointments' });
+  }
+});
+
+
+// filter appointments by date/status for patient
+app.get('/patients/:patientId/appointments', async (req, res) => {
+  try {
+    const patientId = req.params.patientId;
+    const { date, status } = req.query;
+    const patient = await PatientsModel.findById(patientId);
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+    const query = { patientId };
+    if (date) {
+      query.date = new Date(date);
+    }
+    if (status) {
+      query.status = status;
+    }
+    const appointments = await AppointmentsModel.find(query);
+    res.json(appointments);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred while filtering appointments' });
+  }
+});
+
+// view info of patients registered with a doc
+app.get('/doctors/:doctorId/patients-info', async (req, res) => {
+  try {
+    const doctorId = req.params.doctorId;
+    const doctor = await DoctorsModel.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+    const patients = await PatientsModel.find({ doctorId });
+    const patientInfo = patients.map((patient) => {
+      return {
+        name: patient.name,
+        healthRecords: patient.healthRecords,
+        mail:patient.mail,
+        gender:patient.gender,
+        mobile: patient.mobileNumber,
+      };
+    });
+    res.json(patientInfo);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred while fetching patient information and health records' });
+  }
+});
   app.listen(3001,'localhost')
