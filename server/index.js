@@ -495,4 +495,16 @@ app.get('/select-prescriptions/:prescriptionID', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+app.put("/update-family-member",async (req,res)=>{
+  const{pid,name, nationalID, age, gender, relation}=req.body;
+
+  try{
+    await PatientsModel.updateOne({id:pid},{$push: {familyMembers: {nationalID: nationalID, age:age, name:name, gender:gender, relation, relation}}});
+    res.json({message:"Family Member info added successfully."});
+
+  }catch(error){
+    console.error(error);
+    res.status(500).json({message:"An error occured while updating family members."});
+  }});
+
   app.listen(3001,'localhost')
