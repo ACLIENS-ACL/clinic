@@ -34,13 +34,14 @@ function App() {
     axios
       .post(`http://localhost:3001/login-${userType}`, { username, password })
       .then(result => {
-        if (result.data === 'Success') {
+        if(result.data.message==='Success But Not Enrolled'){
+          navigate('/makeReq');
+        }
+        else if (result.data.message === 'Success'||result.data === 'Success') {
           if (userType.toLowerCase() === "admin") { 
-            alert(userType);
             navigate('/admin');
           }
-          else if (userType.toLowerCase() === "doctor") { 
-            alert(userType);
+          else if (userType.toLowerCase() === "doctor") {
             navigate('/doctor');
           } else {
             navigate('/register');

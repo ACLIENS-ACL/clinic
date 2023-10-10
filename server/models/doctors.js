@@ -20,6 +20,10 @@ const UsersSchema = new mongoose.Schema({
     type: String,
     default: 'Request Not Made', // Set the default value to 'Request Not Made'
     enum: ['Approved', 'Rejected', 'Pending', 'Request Not Made'], // Define valid enum values
+  },
+  extraNotes:{
+    type:String,
+    default:""
   }
 });
 

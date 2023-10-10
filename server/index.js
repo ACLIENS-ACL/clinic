@@ -21,15 +21,7 @@ var logged = {
   type: ""
 };
 
-//connection to mongodb
-
-mongoose.connect('mongodb://0.0.0.0:27017/clinic', { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch(error => {
-    console.error('Error connecting to MongoDB:', error);
-  });
+mongoose.connect('mongodb://localhost:27017/clinic');
 
 // Register route for patients
 app.post('/register-patient', (req, res) => {
@@ -48,24 +40,31 @@ app.post('/register-doctor', (req, res) => {
 });
 
 app.post('/login-doctor', (req, res) => {
-    const {username, password} = req.body;
-    DoctorsModel.findOne({ username: username })
-        .then(user => {
-          if (user) {
-            if (user.password === password) {
-              logged.in=true;
-              logged.username=username;
-              logged.type="doctor";
-              res.json("Success");
-            } else {
-              res.json("Password incorrect");
-            }
+  const { username, password } = req.body;
+  
+  DoctorsModel.findOne({ username: username })
+    .then((user) => {
+      if (user) {
+        
+        if (user.password === password) {
+          logged.in = true;
+          logged.username = username;
+          logged.type = "doctor";
+          if (user.enrolled === "Rejected" || user.enrolled === "Request Not Made") {
+            res.status(200).json({ message: "Success But Not Enrolled", enrolledStatus: user.enrolled });
           } else {
-            res.json("username isn't registered");
+            res.status(200).json({ message: "Success" });
           }
-        })
-        .catch(err => res.status(400).json(err));
-  });
+        } else {
+          res.status(401).json({ message: "Password incorrect" });
+        }
+      } else {
+        
+        res.status(404).json({ message: "Username isn't registered" });
+      }
+    })
+    .catch((err) => res.status(400).json(err));
+});
 
   app.post('/login-patient', (req, res) => {
     const {username, password} = req.body;
@@ -148,8 +147,8 @@ app.post('/login-doctor', (req, res) => {
 // Server-side route to fetch doctor requests
 app.get('/doctor-requests', async (req, res) => {
     try {
-      // Find all doctors with "enrolled" set to false
       const doctorRequests = await DoctorsModel.find({ enrolled: "Pending" });
+      console.log(doctorRequests)
       res.json(doctorRequests);
     } catch (error) {
       console.error(error);
@@ -382,10 +381,8 @@ app.get('/get-doctor-info', async (req, res) => {
 });
 
 app.put('/update-doctor-info', async (req, res) => {
-  const { affiliation, hourlyRate, email } = req.body;
-
   try {
-    await DoctorsModel.updateOne({ username: logged.username }, { affiliation, hourlyRate, email });
+    await DoctorsModel.updateOne({ username: req.body.username }, req.body);
     res.json({ message: 'Doctor info updated successfully.' });
   } catch (error) {
     console.error(error);
@@ -393,8 +390,19 @@ app.put('/update-doctor-info', async (req, res) => {
   }
 });
 
-
-//Dina
+app.get('/get-doctor-info', async (req, res) => {
+  try {
+    const loggedUsername = logged.username; 
+    const doctorInfo = await UserModel.findOne({ username: loggedUsername });
+    if (!doctorInfo) {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+    res.json(doctorInfo);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 //view a list of all my Prescriptions   (Req 54)
 
 app.post('/pre', async (req, res) => {
@@ -424,7 +432,7 @@ app.get('/get-prescriptions/:patientID', async (req, res) => {
     if (!prescriptions || prescriptions.length === 0) {
       return res.status(404).json({ message: 'No prescriptions found for the patient' });
     }
-  
+
     res.json(prescriptions);
   } catch (error) {
     console.error('Error: ', error.message);
@@ -438,7 +446,7 @@ app.get('/get-prescriptions/:patientID', async (req, res) => {
 app.get('/filter-prescriptions', async (req, res) => {
     try {
       let query = {};
-  
+
       if (req.query.startDate && req.query.endDate ) {
         const startDate = new Date(req.query.startDate);
         const endDate = new Date(req.query.endDate);
@@ -453,15 +461,15 @@ app.get('/filter-prescriptions', async (req, res) => {
         // Use this block if you want to filter by a single date
         query.Date = new Date(req.query.date);
       }
-  
+
       if (req.query.doctorID) {
         query.doctorID = req.query.doctorID;
       }
-  
+
       if (req.query.status) {
         query.Status = req.query.status;
       }
-  
+
       const prescriptions = await PrescriptionModel.find(query);
       res.json(prescriptions);
   } catch (error) {
@@ -487,6 +495,4 @@ app.get('/select-prescriptions/:prescriptionID', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
-
   app.listen(3001,'localhost')

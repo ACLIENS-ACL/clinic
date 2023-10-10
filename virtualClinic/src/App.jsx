@@ -11,6 +11,7 @@ import EditDoctors from './editDoctors'
 import Doctor from './doctor'
 import Packages from './healthPackages'
 import DoctorInfo from './editInfo'
+import MakeReq from './makeReq'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
         <Route path="/register" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/makeReq" element={<MakeReq />}/>
         <Route path="/register-admin" element={<RegisterAdmin />} />
         <Route path="/view-requests" element={<DoctorsRequests />} />
         <Route path="/edit-admins" element={<EditAdmins />} />
