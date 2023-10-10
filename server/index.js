@@ -397,5 +397,6 @@ app.put("/update-family-member",async (req,res)=>{
     res.status(500).json({message:"An error occured while updating family members."});
   }});
 
-  app.listen(3001,'localhost')
+  app.listen(3001,'localhost');
+  
 
