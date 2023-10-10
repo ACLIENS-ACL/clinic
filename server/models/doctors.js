@@ -5,19 +5,21 @@ const UsersSchema = new mongoose.Schema({
   name: String,
   email: String,
   password: String,
-  dob: String,
+  dob: Date,
   gender: String,
   mobileNumber: String,
+  specialty: String,
   userType: {
     type: String,
-    default: 'doctor', // Set the default user type to 'doctor'
+    default: 'doctor',
   },
   hourlyRate: Number,
   affiliation: String,
   educationalBackground: String,
   enrolled: {
-    type: Boolean,
-    default: false,
+    type: String,
+    default: 'Request Not Made', // Set the default value to 'Request Not Made'
+    enum: ['Approved', 'Rejected', 'Pending', 'Request Not Made'], // Define valid enum values
   }
 });
 

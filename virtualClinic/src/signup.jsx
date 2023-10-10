@@ -28,9 +28,18 @@ function Signup() {
   const [hourlyRate, setHourlyRate] = useState('');
   const [affiliation, setAffiliation] = useState('');
   const [educationalBackground, setEducationalBackground] = useState('');
+  const [selectedSpecialty, setSelectedSpecialty] = useState(''); // New state for selected specialty
   const navigate = useNavigate();
 
   const [passwordError, setPasswordError] = useState('');
+
+  const specialties = [ // Array of medical specialties
+    'Cardiology',
+    'Dermatology',
+    'Orthopedics',
+    'Ophthalmology',
+    'Pediatrics',
+  ];
 
   const validatePassword = (password) => {
     // Password must contain at least one capital letter, one small letter, one special character, and one number.
@@ -40,7 +49,7 @@ function Signup() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!validatePassword(password)) {
       setPasswordError('Password must contain at least 8 characters, one capital letter, one small letter, one special character, and one number.');
       return;
@@ -62,6 +71,7 @@ function Signup() {
       userData.hourlyRate = hourlyRate;
       userData.affiliation = affiliation;
       userData.educationalBackground = educationalBackground;
+      userData.specialty = selectedSpecialty; // Include selected specialty for doctors
     }
 
     axios
@@ -113,7 +123,7 @@ function Signup() {
                 </MDBRow>
                 <MDBRow>
                   <MDBCol md='6'>
-                    <MDBInput wrapperClass='mb-4' label='Date of Birth' size='lg' id='form6' type='text' onChange={(e) => setDob(e.target.value)} required />
+                    <MDBInput wrapperClass='mb-4' label='Date of Birth' size='lg' id='form6' type='date' onChange={(e) => setDob(e.target.value)} required />
                   </MDBCol>
                   <MDBCol md='6' className='mb-4'>
                     <h6 className="fw-bold">Gender: </h6>
@@ -136,6 +146,21 @@ function Signup() {
                       <MDBInput wrapperClass='mb-4' label='Hourly Rate' size='lg' id='form10' type='number' onChange={(e) => setHourlyRate(e.target.value)} required />
                       <MDBInput wrapperClass='mb-4' label='Affiliation (Hospital)' size='lg' id='form11' type='text' onChange={(e) => setAffiliation(e.target.value)} required />
                       <MDBInput wrapperClass='mb-4' label='Educational Background' size='lg' id='form12' type='text' onChange={(e) => setEducationalBackground(e.target.value)} required />
+                      <div className="mb-4">
+                        <label htmlFor="specialty" className="form-label">Specialty</label>
+                        <select
+                          id="specialty"
+                          className="form-select"
+                          value={selectedSpecialty}
+                          onChange={(e) => setSelectedSpecialty(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>Select a specialty</option>
+                          {specialties.map((specialty, index) => (
+                            <option key={index} value={specialty}>{specialty}</option>
+                          ))}
+                        </select>
+                      </div>
                     </MDBCol>
                   )}
                 </MDBRow>
