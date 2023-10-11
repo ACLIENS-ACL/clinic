@@ -15,6 +15,7 @@ import MakeReq from './makeReq'
 import FamilyMembers from './addFamilyMembers'
 import PDashboard from './patientDashboard'
 import ListDoctors from './listDoctors'
+import ViewPatients from './viewPatients'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
         <Route path="/listdoctors" element={<ListDoctors />} />
         <Route path="/addFamilyMembers" element={<FamilyMembers />} />
         <Route path="/patient" element={<PDashboard />} />
+        <Route path="/viewPatients" element={<ViewPatients />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>

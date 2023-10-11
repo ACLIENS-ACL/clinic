@@ -15,11 +15,17 @@ const AppointmentSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  status:  {
-    type: String,
-    default: 'schdeuled',
-    enum: ['scheduled', 'cancelled', 'completed'],
-  }
+  
+  // Add the 'cancelled' boolean attribute with default false
+  cancelled: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+// Update the virtual field for 'status' to check 'cancelled' attribute
+AppointmentSchema.virtual('status').get(function () {
+  return this.cancelled ? 'canceled' : this.date > new Date() ? 'scheduled' : 'completed';
 });
 
 const AppointmentModel = mongoose.model('appointments', AppointmentSchema);

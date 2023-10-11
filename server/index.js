@@ -7,6 +7,7 @@ const AdminsModel = require('./models/admins');
 const PackagesModel = require('./models/packages');
 const AppointmentsModel=require('./models/appointment');
 const PrescriptionModel=require('./models/prescriptions');
+const AppointmentModel = require('./models/appointment');
 
 const app = express();
 
@@ -148,7 +149,6 @@ app.post('/login-doctor', (req, res) => {
 app.get('/doctor-requests', async (req, res) => {
     try {
       const doctorRequests = await DoctorsModel.find({ enrolled: "Pending" });
-      console.log(doctorRequests)
       res.json(doctorRequests);
     } catch (error) {
       console.error(error);
@@ -254,13 +254,62 @@ app.post('/remove-doctor/:doctorId', async (req, res) => {
 
 //view list of all specfic doctor patients (Req 33)
 app.get('/get-my-patients', async (req, res) => {
-  const doctorId = req.params.doctorId;
-  if (!mongoose.Types.ObjectId.isValid(doctorId)) {
-    return res.status(404).json({error:'Invalid ID'});
+  /*const dataItem={
+    "patient": "652675a1ed54a6df4a66974b", // Replace with the actual patient ID
+    "doctor": "65257dc968db8eab87b0f288",  // Replace with the actual doctor ID
+    "date": "2023-12-15T14:30:00.000Z",  // Replace with the desired date and time
+    "status": "scheduled"
+  };
+  await AppointmentModel.create(dataItem);
+  const ddataItem={
+    "patient": "6525c68c1ff94d12ed88fb0f", // Replace with the actual patient ID
+    "doctor": "65257dc968db8eab87b0f288",  // Replace with the actual doctor ID
+    "date": "2023-12-15T14:30:00.000Z",  // Replace with the desired date and time
+    "status": "scheduled"
+  };
+  await AppointmentModel.create(ddataItem);*/
+  try {
+    // Find the doctor based on the logged-in username
+    const doctor = await DoctorsModel.findOne({ username: logged.username });
+
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    // Find all appointments for the doctor
+    const appointments = await AppointmentModel.find({ doctor: doctor._id });
+
+    // Extract unique patient IDs from the appointments
+    const patientIds = Array.from(new Set(appointments.map(appointment => appointment.patient)));
+
+    // Find the patient details for each patient ID
+    const patients = await PatientsModel.find({ _id: { $in: patientIds } });
+
+    // Create a new array with 'info' objects
+    const patientInfo = appointments.map(appointment => {
+      const patient = patients.find(p => p._id.equals(appointment.patient));
+      return {
+        info: {
+          name: patient.name,
+          email: patient.email,
+          dob:patient.dob,
+          gender:patient.gender,
+          mobileNumber:patient.mobileNumber,
+          emergencyContactName:patient.emergencyContactName,
+          emergencyContactNumber:patient.emergencyContactNumber,
+          healthRecords:patient.healthRecords,
+          date: appointment.date,
+        },
+      };
+    });
+
+    res.json(patientInfo);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
   }
-  const patients = await PatientsModel.find({ doctorId: doctorId });
-  res.json(patients);
 });
+
 
 // the doctor search for the patient by his name (req 34)
 app.get('/search-patient/:doctorId/:name', async (req, res) => {
@@ -328,7 +377,6 @@ app.get('/health-packages/:packageId', async (req, res) => {
 // Create a new health package
 app.post('/health-packages', async (req, res) => {
   try {
-    console.log(req.body)
     const newPackage = new PackagesModel(req.body);
     await newPackage.save();
     const packages = await PackagesModel.find();
@@ -497,7 +545,6 @@ app.get('/select-prescriptions/:prescriptionID', async (req, res) => {
 });
 app.put("/update-family-member",async (req,res)=>{
   const{name, nationalID, age, gender, relation}=req.body;
-  console.log(req.body);
   try{
     await PatientsModel.updateOne({username:logged.username},{$push: {familyMembers: {nationalID: nationalID, age:age, name:name, gender:gender, relation, relation}}});
     res.json({message:"Family Member info added successfully."});
