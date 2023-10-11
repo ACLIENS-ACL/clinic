@@ -593,5 +593,30 @@ app.get('/doctors/:doctorId/patients-info', async (req, res) => {
     res.status(500).json({ message: 'An error occurred while fetching patient information and health records' });
   }
 });
-  
+app.get('/get-doctors-session-price/', async (req, res) => {
+  try {
+    const doctors = await DoctorsModel.find({}).select('name specialty hourlyRate');
+    const patient = await PatientsModel.findOne({ username: logged.username });
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+    const subPackage = await PackagesModel.findById(patient.subscribedPackage);
+
+    if (subPackage) {
+      const discount = subPackage.doctorSessionDiscount;
+
+      for (let i = 0; i < doctors.length; i++) {
+        doctors[i].hourlyRate = doctors[i].hourlyRate*1.1 -  ( discount / 100)*doctors[i].hourlyRate;
+      }
+    } else {
+      for (let i = 0; i < doctors.length; i++) {
+        doctors[i].hourlyRate = doctors[i].hourlyRate * 1.1;
+      }
+    }
+    res.json(doctors);
+  } catch (error) {
+    console.error('Error: ', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
   app.listen(3001,'localhost')

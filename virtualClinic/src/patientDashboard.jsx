@@ -55,13 +55,12 @@ function AdminDashboard() {
           </MDBCard>
         </MDBCol>
 
-        {/* View List of All Doctors Card */}
         <MDBCol md="4" className="mb-4">
           <MDBCard>
             <MDBCardBody>
               <MDBCardTitle>View List of All Doctors</MDBCardTitle>
               <MDBCardText>Explore a list of all available doctors.</MDBCardText>
-              <Link to="/">
+              <Link to="/listdoctors">
                 <MDBBtn color="success">View Doctors</MDBBtn>
               </Link>
             </MDBCardBody>

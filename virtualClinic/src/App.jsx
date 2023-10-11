@@ -14,6 +14,7 @@ import DoctorInfo from './editInfo'
 import MakeReq from './makeReq'
 import FamilyMembers from './addFamilyMembers'
 import PDashboard from './patientDashboard'
+import ListDoctors from './listDoctors'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 function App() {
@@ -32,7 +33,7 @@ function App() {
         <Route path="/doctor" element={<Doctor />} />
         <Route path="/modify-packages" element={<Packages />} />
         <Route path="/edit-doctor-info" element={<DoctorInfo />} />
-        
+        <Route path="/listdoctors" element={<ListDoctors />} />
         <Route path="/addFamilyMembers" element={<FamilyMembers />} />
         <Route path="/patient" element={<PDashboard />} />
         <Route path="*" element={<Navigate to="/login" />} />
