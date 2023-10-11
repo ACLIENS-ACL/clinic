@@ -13,6 +13,8 @@ import Packages from './healthPackages'
 import DoctorInfo from './editInfo'
 import MakeReq from './makeReq'
 import Prescription from './prescription'
+import Getprescription from './getprescription'
+
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 function App() {
@@ -32,6 +34,8 @@ function App() {
         <Route path="/modify-packages" element={<Packages />} />
         <Route path="/edit-doctor-info" element={<DoctorInfo />} />
         <Route path="/prescription" element={<Prescription />} />
+        <Route path="/getprescription" element={<Getprescription />} />
+
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
