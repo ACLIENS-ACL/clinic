@@ -48,7 +48,7 @@ function AdminDashboard() {
             <MDBCardBody>
               <MDBCardTitle>View Existing Family Members</MDBCardTitle>
               <MDBCardText>View and manage your existing family members.</MDBCardText>
-              <Link to="/">
+              <Link to="/myFamilyMembers">
                 <MDBBtn color="info">View Members</MDBBtn>
               </Link>
             </MDBCardBody>
@@ -73,7 +73,7 @@ function AdminDashboard() {
             <MDBCardBody>
               <MDBCardTitle>View My Appointments</MDBCardTitle>
               <MDBCardText>View and manage your scheduled appointments.</MDBCardText>
-              <Link to="/">
+              <Link to="/myPAppointments">
                 <MDBBtn color="warning">View Appointments</MDBBtn>
               </Link>
             </MDBCardBody>

@@ -556,35 +556,59 @@ app.put("/update-family-member",async (req,res)=>{
 
 
   // view family memebers
-app.get('/view-family-members' , async (req, res) => {
-  try {
-    const familyMemberIds = patient.familyMembers;
-    const familymem = await PatientsModel.find({  _id: { $in: familyMemberIds } } );
-    res.json(familymem);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'An error occurred while fetching family members ' });
-  }
-} );
+  app.get('/view-family-members', async (req, res) => {
+    try {
+      const patient = await PatientsModel.findOne({ username: logged.username });
+  
+      if (!patient) {
+        return res.status(404).json({ message: 'Patient not found' });
+      }
+      const familyMembers = patient.familyMembers;
+  
+      res.json(familyMembers);
+      console.log(familyMembers);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'An error occurred while fetching family members' });
+    }
+  });
+  
 
 // filter appointments by date/status for doc
-app.get('/doctors/:doctorId/appointments', async (req, res) => {
+app.get('/doctorsAppointments', async (req, res) => {
   try {
-    const doctorId = req.params.doctorId;
-    const { date, status } = req.query;
-    const doctor = await Doctor.findById(doctorId);
+    const doctor = await DoctorsModel.findOne({ username: logged.username });
+
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
-    const query = { doctorId };
-    if (date) {
-      query.date = new Date(date);
+
+    const appointments = await AppointmentsModel.find({ doctor: doctor._id });
+
+    // Create an array to store enhanced appointment information
+    const enhancedAppointments = [];
+
+    // Loop through the appointments and retrieve additional information
+    for (const appointment of appointments) {
+      // Find the doctor using the doctor's ID in the appointment
+      const patient = await PatientsModel.findOne({ _id: appointment.patient });
+
+      if (patient) {
+        // Enhance the appointment object with doctor's name
+        const enhancedAppointment = {
+          _id: appointment._id,
+          date: appointment.date,
+          status: appointment.status,
+          patientName: patient.name,
+        };
+        enhancedAppointments.push(enhancedAppointment);
+      } else {
+        // Handle the case where the doctor is not found
+        console.error('Doctor not found for appointment ID:', appointment._id);
+      }
     }
-    if (status) {
-      query.status = status;
-    }
-    const appointments = await AppointmentsModel.find(query);
-    res.json(appointments);
+
+    res.json(enhancedAppointments);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'An error occurred while filtering appointments' });
@@ -593,28 +617,46 @@ app.get('/doctors/:doctorId/appointments', async (req, res) => {
 
 
 // filter appointments by date/status for patient
-app.get('/patients/:patientId/appointments', async (req, res) => {
+app.get('/patientsAppointments', async (req, res) => {
   try {
-    const patientId = req.params.patientId;
-    const { date, status } = req.query;
-    const patient = await PatientsModel.findById(patientId);
+    const patient = await PatientsModel.findOne({ username: logged.username });
+
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
     }
-    const query = { patientId };
-    if (date) {
-      query.date = new Date(date);
+
+    const appointments = await AppointmentsModel.find({ patient: patient._id });
+
+    // Create an array to store enhanced appointment information
+    const enhancedAppointments = [];
+
+    // Loop through the appointments and retrieve additional information
+    for (const appointment of appointments) {
+      // Find the doctor using the doctor's ID in the appointment
+      const doctor = await DoctorsModel.findOne({ _id: appointment.doctor });
+
+      if (doctor) {
+        // Enhance the appointment object with doctor's name
+        const enhancedAppointment = {
+          _id: appointment._id,
+          date: appointment.date,
+          status: appointment.status,
+          doctorName: doctor.name,
+        };
+        enhancedAppointments.push(enhancedAppointment);
+      } else {
+        // Handle the case where the doctor is not found
+        console.error('Doctor not found for appointment ID:', appointment._id);
+      }
     }
-    if (status) {
-      query.status = status;
-    }
-    const appointments = await AppointmentsModel.find(query);
-    res.json(appointments);
+
+    res.json(enhancedAppointments);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'An error occurred while filtering appointments' });
   }
 });
+
 
 // view info of patients registered with a doc
 app.get('/doctors/:doctorId/patients-info', async (req, res) => {

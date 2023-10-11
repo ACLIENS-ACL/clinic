@@ -41,7 +41,7 @@ function DoctorDashboard() {
               <MDBCardText>
               View My Appointments.
               </MDBCardText>
-              <Link to="/edit-patients">
+              <Link to="/myDAppointments">
                 <MDBBtn color="info">View</MDBBtn>
               </Link>
             </MDBCardBody>

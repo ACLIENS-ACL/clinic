@@ -13,9 +13,12 @@ import Packages from './healthPackages'
 import DoctorInfo from './editInfo'
 import MakeReq from './makeReq'
 import FamilyMembers from './addFamilyMembers'
+import MyFamilyMembers from './patientFamily'
 import PDashboard from './patientDashboard'
 import ListDoctors from './listDoctors'
 import ViewPatients from './viewPatients'
+import PatientAppointments from './patientAppointments'
+import DoctorAppointments from './doctorAppointments'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 function App() {
@@ -38,6 +41,9 @@ function App() {
         <Route path="/addFamilyMembers" element={<FamilyMembers />} />
         <Route path="/patient" element={<PDashboard />} />
         <Route path="/viewPatients" element={<ViewPatients />} />
+        <Route path="/myFamilyMembers" element={<MyFamilyMembers />} />
+        <Route path="/myPAppointments" element={<PatientAppointments />} />
+        <Route path="/myDAppointments" element={<DoctorAppointments />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
