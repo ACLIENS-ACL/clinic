@@ -16,18 +16,13 @@ app.use(cors({ credentials: true, origin: true }));
 
 
 var logged = {
-  username: "",
+  username: "men",
   in: "",
   type: ""
 };
 
-mongoose.connect('mongodb://0.0.0.0:27017/clinic', { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch(error => {
-    console.error('Error connecting to MongoDB:', error);
-  });
+mongoose.connect('mongodb://localhost:27017/clinic');
+
 // Register route for patients
 app.post('/register-patient', (req, res) => {
   const patientData = req.body;
@@ -501,10 +496,10 @@ app.get('/select-prescriptions/:prescriptionID', async (req, res) => {
   }
 });
 app.put("/update-family-member",async (req,res)=>{
-  const{pid,name, nationalID, age, gender, relation}=req.body;
-
+  const{name, nationalID, age, gender, relation}=req.body;
+  console.log(req.body);
   try{
-    await PatientsModel.updateOne({id:pid},{$push: {familyMembers: {nationalID: nationalID, age:age, name:name, gender:gender, relation, relation}}});
+    await PatientsModel.updateOne({username:logged.username},{$push: {familyMembers: {nationalID: nationalID, age:age, name:name, gender:gender, relation, relation}}});
     res.json({message:"Family Member info added successfully."});
 
   }catch(error){
@@ -512,7 +507,7 @@ app.put("/update-family-member",async (req,res)=>{
     res.status(500).json({message:"An error occured while updating family members."});
   }});
 
-  
+
   // view family memebers
 app.get('/view-family-members' , async (req, res) => {
   try {
@@ -598,4 +593,5 @@ app.get('/doctors/:doctorId/patients-info', async (req, res) => {
     res.status(500).json({ message: 'An error occurred while fetching patient information and health records' });
   }
 });
+  
   app.listen(3001,'localhost')

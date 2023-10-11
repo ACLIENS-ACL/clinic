@@ -43,6 +43,8 @@ function App() {
           }
           else if (userType.toLowerCase() === "doctor") {
             navigate('/doctor');
+          } else if (userType.toLowerCase() === "patient") {
+            navigate('/patient');
           } else {
             navigate('/register');
           }
