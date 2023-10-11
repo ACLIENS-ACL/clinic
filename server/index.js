@@ -566,7 +566,6 @@ app.put("/update-family-member",async (req,res)=>{
       const familyMembers = patient.familyMembers;
   
       res.json(familyMembers);
-      console.log(familyMembers);
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'An error occurred while fetching family members' });
@@ -684,7 +683,7 @@ app.get('/doctors/:doctorId/patients-info', async (req, res) => {
 });
 app.get('/get-doctors-session-price/', async (req, res) => {
   try {
-    const doctors = await DoctorsModel.find({}).select('name specialty hourlyRate');
+    const doctors = await DoctorsModel.find({enrolled:'Approved'});
     const patient = await PatientsModel.findOne({ username: logged.username });
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
@@ -708,4 +707,6 @@ app.get('/get-doctors-session-price/', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+
   app.listen(3001,'localhost')

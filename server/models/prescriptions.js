@@ -22,6 +22,7 @@ const PrescriptionSchema = new mongoose.Schema({
   Status: {
     type: String,
     enum: ['filled', 'unfilled'] ,
+    default: 'filled',
     required: true
   }
   // diagnosis: String,

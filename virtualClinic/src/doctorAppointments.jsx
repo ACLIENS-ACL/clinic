@@ -98,7 +98,7 @@ function AppointmentsList() {
           <select style={selectStyle} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="all">All</option>
             <option value="scheduled">Scheduled</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="canceled">Canceled</option>
             <option value="completed">Completed</option>
           </select>
         </label>
