@@ -24,8 +24,13 @@ const UsersSchema = new mongoose.Schema({
   extraNotes:{
     type:String,
     default:""
+  }, 
+  availableSlots: {
+    type: [Date],
+    default: []
   }
 });
+
 
 const UserModel = mongoose.model('doctors', UsersSchema);
 module.exports = UserModel;

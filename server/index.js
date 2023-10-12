@@ -684,6 +684,29 @@ app.get('/doctors/:doctorId/patients-info', async (req, res) => {
 app.get('/get-doctors-session-price/', async (req, res) => {
   try {
     const doctors = await DoctorsModel.find({enrolled:'Approved'});
+    /*for (const doctor of doctors) {
+      const numberOfSlots = 5;
+      const randomSlots = [];
+      for (let i = 0; i < numberOfSlots; i++) {
+        const today = new Date();
+        const randomDate = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate() + Math.floor(Math.random() * 30), // Random day of the month
+          8 + Math.floor(Math.random() * 4), // Random hour (8-11)
+          Math.floor(Math.random() * 60) // Random minute (0-59)
+        );
+        randomSlots.push(randomDate.toISOString()); // Convert to ISO 8601 string
+      }
+    
+      // Update the doctor's availableSlots field with the randomSlots array
+      doctor.availableSlots = randomSlots.map((slot) => new Date(slot));
+    
+      // Save the updated doctor document
+      await doctor.save();
+    }*/
+    
+    
     const patient = await PatientsModel.findOne({ username: logged.username });
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });

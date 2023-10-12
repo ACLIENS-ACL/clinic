@@ -101,6 +101,8 @@ const Doctors = () => {
   const [searchSpecialty, setSearchSpecialty] = useState('');
   const [filteredDoctors, setFilteredDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [selectedDateTime, setSelectedDateTime] = useState('');
+
 
   useEffect(() => {
     axios.get(`http://localhost:3001/get-doctors-session-price/`)
@@ -115,7 +117,6 @@ const Doctors = () => {
   }, []);
 
   useEffect(() => {
-    // Filter doctors based on search criteria
     const filtered = doctors.filter((doctor) => {
       const nameMatch = doctor.name.toLowerCase().includes(searchName.toLowerCase());
       const specialtyMatch = doctor.specialty.toLowerCase().includes(searchSpecialty.toLowerCase());
@@ -123,12 +124,34 @@ const Doctors = () => {
     });
 
     setFilteredDoctors(filtered);
-
     // Check if the selectedDoctor is still in the filtered list; otherwise, clear the selection
     if (selectedDoctor && !filtered.find((d) => d._id === selectedDoctor._id)) {
       setSelectedDoctor(null);
     }
   }, [doctors, searchName, searchSpecialty, selectedDoctor]);
+
+  useEffect(() => {
+    const filtered = doctors.filter((doctor) => {
+      const nameMatch = doctor.name.toLowerCase().includes(searchName.toLowerCase());
+      const specialtyMatch = doctor.specialty.toLowerCase().includes(searchSpecialty.toLowerCase());
+      const isNameMatch = nameMatch || !searchName;
+      const isSpecialtyMatch = specialtyMatch || searchSpecialty === 'All Specialties';
+
+      if (selectedDateTime) {
+        const hasAvailableSlot = doctor.availableSlots.some((slot) => slot.replace(/:00.000Z$/, "") === selectedDateTime);
+
+        return isNameMatch && isSpecialtyMatch && hasAvailableSlot;
+      }
+
+      return isNameMatch && isSpecialtyMatch;
+    });
+
+    setFilteredDoctors(filtered);
+
+    if (selectedDoctor && !filtered.find((d) => d._id === selectedDoctor._id)) {
+      setSelectedDoctor(null);
+    }
+  }, [doctors, searchName, searchSpecialty, selectedDoctor, selectedDateTime]);
 
   const clearSearch = () => {
     setSearchName('');
@@ -201,13 +224,23 @@ const Doctors = () => {
               ))}
             </select>
           </div>
+          <div style={searchFieldStyle}>
+            <label htmlFor="searchDateTime">Date and Time:</label>
+            <input
+              type="datetime-local" // Use datetime-local input for date and time selection
+              id="searchDateTime"
+              value={selectedDateTime}
+              onChange={(e) => setSelectedDateTime(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
         </div>
         <div style={searchButtonContainerStyle}>
           <button onClick={clearSearch} style={buttonStyle}>Clear</button>
         </div>
       </div>
 
-      
+
 
       <h2 style={subHeaderStyle}>Filtered Doctors</h2>
       <ul style={listStyle}>
@@ -216,17 +249,21 @@ const Doctors = () => {
             <strong>Name:</strong> {doctor.name} <br />
             <strong>Specialty:</strong> {doctor.specialty} <br />
             <strong>Session Price Per Hour:</strong> ${doctor.hourlyRate.toFixed(2)}
+            {selectedDoctor && selectedDoctor._id === doctor._id && (
+              <div style={doctorDetailsStyle}>
+                <p><strong>Specialty:</strong> {selectedDoctor.specialty}</p>
+                <p><strong>Affiliation (Hospital):</strong> {selectedDoctor.affiliation}</p>
+                <p><strong>Educational Background:</strong> {selectedDoctor.educationalBackground}</p>
+              </div>
+            )}
           </li>
         ))}
       </ul>
-      {selectedDoctor && (
-        <div style={selectedDoctorContainerStyle}>
-          <h2 style={subHeaderStyle}>Selected Doctor</h2>
-          {doctorDetails}
-        </div>
-      )}
     </div>
   );
 };
 
 export default Doctors;
+
+
+
