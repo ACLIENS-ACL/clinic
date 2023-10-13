@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function EditInfo() {
   const [doctorInfo, setDoctorInfo] = useState({
@@ -17,19 +18,28 @@ function EditInfo() {
       })
       .catch((error) => console.error(error));
   }, []);
-
+  const navigate = useNavigate();
   const handleChange = (e) => {
     const { name, value } = e.target;
     setDoctorInfo({ ...doctorInfo, [name]: value });
   };
-
+  useEffect(() => {
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`)
+      .then((response) => {
+        const responseData = response.data;
+        if (responseData.type.toLowerCase() !== "doctor" || responseData.in !== true) {
+          navigate('/login')
+          return null;
+        }
+      })
+  }, []);
   const handleSubmit = (e) => {
     e.preventDefault();
     // Send a PUT request to update the specific attributes (affiliation, hourlyRate, and email)
     axios.put(`http://localhost:3001/update-doctor-info`, doctorInfo)
       .then((response) => {
-        // Handle success or redirect to a different page
-        console.log('Doctor info updated successfully:', response.data);
+        alert("Info Updated Successfully")
       })
       .catch((error) => console.error(error));
   };

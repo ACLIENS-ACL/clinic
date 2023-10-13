@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const containerStyles = {
   maxWidth: '800px',
@@ -45,9 +46,20 @@ const rejectButtonStyles = {
   cursor: 'pointer',
 };
 function DoctorRequests() {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [message, setMessage] = useState('');
-
+  useEffect(() => {
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`)
+      .then((response) => {
+        const responseData = response.data;
+        if (responseData.type.toLowerCase() !== "admin" || responseData.in !== true) {
+          navigate('/login')
+          return null;
+        }
+      })
+  }, []);
   useEffect(() => {
     // Fetch doctor requests from the server
     axios.get('http://localhost:3001/doctor-requests')
@@ -109,7 +121,8 @@ function DoctorRequests() {
                 )
                 .map((key) => (
                   <li key={key}>
-                    {key === 'extraNotes' ? 'Professional Experience' : key}: {request[key]}
+                    {key === 'extraNotes' ? 'Professional Experience' : key}:
+                    {key === 'dob' ? new Date(request[key]).toISOString().split('T')[0] : request[key]}
                   </li>
                 ))}
             </ul>

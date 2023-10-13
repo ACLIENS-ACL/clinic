@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const containerStyle = {
@@ -40,10 +41,23 @@ const listStyle = {
 };
 
 function PatientFamilyMembers() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`)
+      .then((response) => {
+        const responseData = response.data;
+        if (responseData.type.toLowerCase() !== "patient" || responseData.in !== true) {
+          navigate('/login')
+          return null;
+        }
+      })
+  }, []);
+
   const [familyMembers, setFamilyMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  
   useEffect(() => {
     axios.get('http://localhost:3001/view-family-members')
       .then(response => {
@@ -76,7 +90,7 @@ function PatientFamilyMembers() {
               <strong style={labelStyle}>National ID:</strong> {familyMember.nationalID}<br />
               <strong style={labelStyle}>Age:</strong> {familyMember.age}<br />
               <strong style={labelStyle}>Gender:</strong> {familyMember.gender}<br />
-              <strong style={labelStyle}>Relationship:</strong> {familyMember.relation}<br />
+              <strong style={labelStyle}>Relation:</strong> {familyMember.relation}<br />
             </li>
           ))}
         </ul>

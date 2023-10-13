@@ -1,5 +1,6 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const styles = {
   form: {
@@ -14,45 +15,60 @@ const styles = {
 
 const relations = ["Mother", "Father", "Sibling", "Spouse", "Child", "Other"];
 
-class AddFamilyMemberForm extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      name: '',
-      nationalID: '',
-      age: '',
-      gender: 'female',
-      relation: '',
-      message: '',
-      error: '',
-    };
-  }
+const AddFamilyMemberForm = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    nationalID: '',
+    age: '',
+    gender: 'female',
+    relation: '',
+  });
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
-  handleInputChange = (event) => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`)
+      .then((response) => {
+        const responseData = response.data;
+        if (responseData.type.toLowerCase() !== "patient" || !responseData.in) {
+          navigate('/login');
+        }
+      })
+      .catch((error) => {
+        setError('An error occurred while fetching user data.');
+      });
+  }, [navigate]);
+
+  const handleInputChange = (event) => {
     const { name, value } = event.target;
-    this.setState({ [name]: value });
-  }
+    setFormData({ ...formData, [name]: value });
+  };
 
-  handleSubmit = async (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    const { name, nationalID, age, gender, relation } = this.state;
-    
+    const { name, nationalID, age, relation } = formData;
+
     if (name === '' || nationalID === '' || age === '' || relation === '') {
-      this.setState({ error: 'Please fill in all required fields.', message: '' });
+      setError('Please fill in all required fields.');
+      setMessage('');
       return;
     }
 
     if (parseInt(age) < 0) {
-      this.setState({ error: 'Age cannot be negative.', message: '' });
+      setError('Age cannot be negative.');
+      setMessage('');
       return;
     }
 
     try {
-      const response = await axios.put('http://localhost:3001/update-family-member', { name, nationalID, age, gender, relation });
+      const response = await axios.put('http://localhost:3001/update-family-member', formData);
       if (response.status === 200) {
-        this.setState({
-          message: response.data.message,
-          error: '',
+        setMessage(response.data.message);
+        setError('');
+        setFormData({
           name: '',
           nationalID: '',
           age: '',
@@ -61,71 +77,70 @@ class AddFamilyMemberForm extends Component {
         });
       }
     } catch (error) {
-      this.setState({ error: 'An error occurred while updating family members.', message: '' });
+      setError('An error occurred while updating family members.');
+      setMessage('');
     }
-  }
+  };
 
-  render() {
-    return (
-      <div>
-        <h1>Add Family Member</h1>
-        <form style={styles.form} onSubmit={this.handleSubmit}>
-          <input
-            type="text"
-            name="name"
-            placeholder="Name"
-            value={this.state.name}
-            onChange={this.handleInputChange}
-            style={styles.input}
-            required
-          />
-          <input
-            type="text"
-            name="nationalID"
-            placeholder="National ID"
-            value={this.state.nationalID}
-            onChange={this.handleInputChange}
-            style={styles.input}
-            required
-          />
-          <input
-            type="number"
-            name="age"
-            placeholder="Age"
-            value={this.state.age}
-            onChange={this.handleInputChange}
-            style={styles.input}
-            required
-            min="0"
-          />
-          <select
-            name="gender"
-            value={this.state.gender}
-            onChange={this.handleInputChange}
-            style={styles.input}
-          >
-            <option value="female">Female</option>
-            <option value="male">Male</option>
-          </select>
-          <select
-            name="relation"
-            value={this.state.relation}
-            onChange={this.handleInputChange}
-            style={styles.input}
-            required
-          >
-            <option value="" disabled>Select Relation</option>
-            {relations.map((rel, index) => (
-              <option key={index} value={rel}>{rel}</option>
-            ))}
-          </select>
-          <button type="submit">Add Family Member</button>
-        </form>
-        {this.state.message && <p>{this.state.message}</p>}
-        {this.state.error && <p>{this.state.error}</p>}
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      <h1>Add Family Member</h1>
+      <form style={styles.form} onSubmit={handleSubmit}>
+        <input
+          type="text"
+          name="name"
+          placeholder="Name"
+          value={formData.name}
+          onChange={handleInputChange}
+          style={styles.input}
+          required
+        />
+        <input
+          type="text"
+          name="nationalID"
+          placeholder="National ID"
+          value={formData.nationalID}
+          onChange={handleInputChange}
+          style={styles.input}
+          required
+        />
+        <input
+          type="number"
+          name="age"
+          placeholder="Age"
+          value={formData.age}
+          onChange={handleInputChange}
+          style={styles.input}
+          required
+          min="0"
+        />
+        <select
+          name="gender"
+          value={formData.gender}
+          onChange={handleInputChange}
+          style={styles.input}
+        >
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+        </select>
+        <select
+          name="relation"
+          value={formData.relation}
+          onChange={handleInputChange}
+          style={styles.input}
+          required
+        >
+          <option value="" disabled>Select Relation</option>
+          {relations.map((rel, index) => (
+            <option key={index} value={rel}>{rel}</option>
+          ))}
+        </select>
+        <button type="submit">Add Family Member</button>
+      </form>
+      {message && <p>{message}</p>}
+      {error && <p>{error}</p>}
+    </div>
+  );
+};
 
 export default AddFamilyMemberForm;

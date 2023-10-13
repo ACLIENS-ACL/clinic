@@ -78,8 +78,10 @@ function Signup() {
     axios
   .post(`http://localhost:3001/register-${userType}`, userData)
   .then(result => {
-    console.log(result);
-    navigate('/login'); // Navigate to the /login route after successful submission
+    if(userType.toLowerCase()=="doctor")
+      alert("Please Login to Make a Request!");
+    navigate('/login')
+    
   })
   .catch(err => {
     console.log(err);
@@ -123,7 +125,7 @@ function Signup() {
               <form onSubmit={handleSubmit}>
                 <MDBRow>
                   <MDBCol md='6'>
-                    <MDBInput wrapperClass='mb-4' label='Username' size='lg' id='form1' type='text' onChange={(e) => setUsername(e.target.value)} required />
+                    <MDBInput wrapperClass='mb-4' label='Username' size='lg' id='form1' type='text' onChange={(e) => setUsername(e.target.value.toLowerCase())} required />
                   </MDBCol>
                   <MDBCol md='6'>
                     <MDBInput wrapperClass='mb-4' label='Full Name' size='lg' id='form2' type='text' onChange={(e) => setName(e.target.value)} required />

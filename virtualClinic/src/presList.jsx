@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function PrescriptionList() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`)
+      .then((response) => {
+        const responseData = response.data;
+        if (responseData.type.toLowerCase() !== "patient" || responseData.in !== true) {
+          navigate('/login')
+          return null;
+        }
+      })
+  }, []);
   const [prescriptions, setPrescriptions] = useState([]);
   const [filteredPrescriptions, setFilteredPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +75,7 @@ function PrescriptionList() {
     display: selectedPrescription ? 'block' : 'none',
     zIndex: 1,
   };
-
+  
   const handlePrescriptionSelect = (prescription) => {
     if (selectedPrescription === prescription) {
       setSelectedPrescription(null); // Deselect if already selected
@@ -131,7 +144,7 @@ function PrescriptionList() {
       filteredPrescriptionList = filteredPrescriptionList.filter(
         (p) => {
           const prescriptionTimestamp = new Date(p.date).getTime();
-          return prescriptionTimestamp <= endTimestamp;
+          return prescriptionTimestamp < endTimestamp+ 24 * 60 * 60 * 1000;
         }
       );
     }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const containerStyle = {
   fontFamily: 'Arial, sans-serif',
@@ -39,13 +40,24 @@ const statusLabelStyle = {
 };
 
 function AppointmentsList() {
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
-
+  useEffect(() => {
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`)
+      .then((response) => {
+        const responseData = response.data;
+        if (responseData.type.toLowerCase() !== "doctor" || responseData.in !== true) {
+          navigate('/login')
+          return null;
+        }
+      })
+  }, []);
   useEffect(() => {
     // Make an Axios GET request to fetch the patient's appointments with doctor names and statuses
     axios.get('http://localhost:3001/doctorsAppointments')

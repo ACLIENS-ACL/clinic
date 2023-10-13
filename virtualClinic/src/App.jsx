@@ -29,7 +29,7 @@ function App() {
         <Route path="/register" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/makeReq" element={<MakeReq />}/>
+        <Route path="/makeReq" element={<MakeReq />} />
         <Route path="/register-admin" element={<RegisterAdmin />} />
         <Route path="/view-requests" element={<DoctorsRequests />} />
         <Route path="/edit-admins" element={<EditAdmins />} />

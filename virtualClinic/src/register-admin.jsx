@@ -1,8 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MDBContainer, MDBRow, MDBCol, MDBInput, MDBBtn } from 'mdb-react-ui-kit';
 import axios from 'axios';
-
+import { useNavigate } from 'react-router-dom';
 function RegistrationForm() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`)
+      .then((response) => {
+        const responseData = response.data;
+        if (responseData.type.toLowerCase() !== "admin" || responseData.in !== true) {
+          navigate('/login')
+          return null;
+        }
+      })
+  }, []);
   const formStyle = {
     background: '#f0f0f0', // Background color
     padding: '20px', // Add padding for spacing
@@ -15,7 +27,7 @@ function RegistrationForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
 

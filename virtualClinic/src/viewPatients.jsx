@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function PatientList() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`)
+      .then((response) => {
+        const responseData = response.data;
+        if (responseData.type.toLowerCase() !== "doctor" || responseData.in !== true) {
+          navigate('/login')
+          return null;
+        }
+      })
+  }, []);
   const [patients, setPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [upcomingOnly, setUpcomingOnly] = useState(false);
@@ -27,7 +40,7 @@ function PatientList() {
   useEffect(() => {
     fetchData();
   }, []);
-
+  
   const fetchData = () => {
     axios.get('http://localhost:3001/get-my-patients')
       .then(response => {

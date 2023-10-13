@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const containerStyle = {
   textAlign: 'center',
@@ -102,8 +103,18 @@ const Doctors = () => {
   const [filteredDoctors, setFilteredDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedDateTime, setSelectedDateTime] = useState('');
-
-
+  const navigate = useNavigate();
+  useEffect(() => {
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`)
+      .then((response) => {
+        const responseData = response.data;
+        if (responseData.type.toLowerCase() !== "patient" || responseData.in !== true) {
+          navigate('/login')
+          return null;
+        }
+      })
+  }, []);
   useEffect(() => {
     axios.get(`http://localhost:3001/get-doctors-session-price/`)
       .then((response) => {
@@ -118,8 +129,8 @@ const Doctors = () => {
 
   useEffect(() => {
     const filtered = doctors.filter((doctor) => {
-      const nameMatch = doctor.name.toLowerCase().includes(searchName.toLowerCase());
-      const specialtyMatch = doctor.specialty.toLowerCase().includes(searchSpecialty.toLowerCase());
+      const nameMatch = doctor.name.toLowerCase().startsWith(searchName.toLowerCase());
+      const specialtyMatch = doctor.specialty.toLowerCase().startsWith(searchSpecialty.toLowerCase());
       return (nameMatch || !searchName) && (specialtyMatch || searchSpecialty === 'All Specialties');
     });
 
@@ -132,8 +143,8 @@ const Doctors = () => {
 
   useEffect(() => {
     const filtered = doctors.filter((doctor) => {
-      const nameMatch = doctor.name.toLowerCase().includes(searchName.toLowerCase());
-      const specialtyMatch = doctor.specialty.toLowerCase().includes(searchSpecialty.toLowerCase());
+      const nameMatch = doctor.name.toLowerCase().startsWith(searchName.toLowerCase());
+      const specialtyMatch = doctor.specialty.toLowerCase().startsWith(searchSpecialty.toLowerCase());
       const isNameMatch = nameMatch || !searchName;
       const isSpecialtyMatch = specialtyMatch || searchSpecialty === 'All Specialties';
 

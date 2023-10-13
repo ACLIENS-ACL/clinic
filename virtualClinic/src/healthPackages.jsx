@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function HealthPackages() {
   const [packages, setPackages] = useState([]);
@@ -11,14 +12,24 @@ function HealthPackages() {
     familyMemberDiscount: 0,
   });
   const [editingPackageId, setEditingPackageId] = useState(null);
-
+  const navigate = useNavigate();
   useEffect(() => {
     // Fetch existing health packages from the server and set them to the state.
     axios.get('http://localhost:3001/health-packages')
       .then((response) => setPackages(response.data))
       .catch((error) => console.error(error));
   }, []);
-
+  useEffect(() => {
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`)
+      .then((response) => {
+        const responseData = response.data;
+        if (responseData.type.toLowerCase() !== "admin" || responseData.in !== true) {
+          navigate('/login')
+          return null;
+        }
+      })
+  }, []);
   const handleSubmit = (e) => {
     e.preventDefault();
     if (editingPackageId === null) {

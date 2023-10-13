@@ -56,7 +56,6 @@ function App() {
       });
   };
   
-
   return (
     <MDBContainer className="my-5" style={gradientFormStyle}>
       <MDBRow>
@@ -69,7 +68,7 @@ function App() {
             </div>
             <p>Please login to your account</p>
             <form onSubmit={handleSubmit}>
-              <MDBInput wrapperClass='mb-4' label='Username' id='form1' type='username' value={username} onChange={(e) => setUsername(e.target.value)} />
+              <MDBInput wrapperClass='mb-4' label='Username' id='form1' type='username' value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} />
               <MDBInput wrapperClass='mb-4' label='Password' id='form2' type='password' value={password} onChange={(e) => setPassword(e.target.value)} />
               <div className="text-center pt-1 mb-5 pb-1">
                 <div className="mb-3">

@@ -17,7 +17,7 @@ app.use(cors({ credentials: true, origin: true }));
 
 
 var logged = {
-  username: "men",
+  username: "",
   in: "",
   type: ""
 };
@@ -29,7 +29,7 @@ app.post('/register-patient', (req, res) => {
   const userData = req.body;
 
   // Check if a user with the same username already exists in PatientsModel
-  PatientsModel.findOne({ username: userData.username })
+  PatientsModel.findOne({ username: userData.username.toLowerCase() })
     .then(existingPatient => {
       if (existingPatient) {
         return res.status(400).json({ message: 'Username already exists' });
@@ -56,6 +56,7 @@ app.post('/register-doctor', (req, res) => {
         DoctorsModel.create(userData)
           .then(doctor => res.json(doctor))
           .catch(err => res.status(400).json(err));
+        
       }
     })
     .catch(err => res.status(500).json(err));
@@ -65,7 +66,7 @@ app.post('/register-doctor', (req, res) => {
 app.post('/login-doctor', (req, res) => {
   const { username, password } = req.body;
   
-  DoctorsModel.findOne({ username: username })
+  DoctorsModel.findOne({ username: username.toLowerCase() })
     .then((user) => {
       if (user) {
         
@@ -91,7 +92,7 @@ app.post('/login-doctor', (req, res) => {
 
   app.post('/login-patient', (req, res) => {
     const {username, password} = req.body;
-    PatientsModel.findOne({ username: username })
+    PatientsModel.findOne({ username: username.toLowerCase() })
         .then(user => {
           if (user) {
             if (user.password === password) {
@@ -111,7 +112,7 @@ app.post('/login-doctor', (req, res) => {
 
   app.post('/login-admin', (req, res) => {
     const {username, password} = req.body;
-    if(username==="admin"&&password=="admin"){
+    if(username.toLowerCase()==="admin"&&password=="admin"){
         logged.in=true;
         logged.username="admin";
         logged.type="admin";
@@ -120,7 +121,7 @@ app.post('/login-doctor', (req, res) => {
       }
     
     else{
-        AdminsModel.findOne({ username: username })
+        AdminsModel.findOne({ username: username.toLowerCase() })
         .then(user => {
           if (user) {
             if (user.password === password) {
@@ -145,9 +146,9 @@ app.post('/login-doctor', (req, res) => {
   try {
     const adminData = req.body;
 
-    const existingAdmin = await AdminsModel.findOne({ username: adminData.username });
+    const existingAdmin = await AdminsModel.findOne({ username: adminData.username.toLowerCase() });
 
-    if (existingAdmin) {
+    if (existingAdmin||(req.body.username.toLowerCase()=="admin")) {
       // If username already exists, return an error response
       return res.json({ message: 'Username already exists' });
     }
@@ -254,7 +255,7 @@ app.post('/approve-doctor/:id', async (req, res) => {
 // GET endpoint to fetch all doctors
 app.get('/get-doctors', async (req, res) => {
   try {
-    const doctors = await DoctorsModel.find();
+    const doctors = await DoctorsModel.find({enrolled:'Approved'});
     res.json(doctors);
   } catch (error) {
     console.error(error);
@@ -452,7 +453,7 @@ app.get('/get-doctor-info', async (req, res) => {
 
 app.put('/update-doctor-info', async (req, res) => {
   try {
-    await DoctorsModel.updateOne({ username: req.body.username }, req.body);
+    await DoctorsModel.updateOne({ username:logged.username }, req.body);
     res.json({ message: 'Doctor info updated successfully.' });
   } catch (error) {
     console.error(error);
@@ -474,16 +475,14 @@ app.get('/get-doctor-info', async (req, res) => {
   }
 });
 
-//--------------------------
 //view a list of all my Prescriptions   (Req 54)
 
-
-
-  //const ObjectId = mongoose.Types.ObjectId;
-  /*const prescriptionsData = [
+app.get('/get-prescriptions/', async (req, res) => {
+  /*const ObjectId = mongoose.Types.ObjectId;
+  const prescriptionsData = [
   {
-    patientID: new ObjectId("6525c68c1ff94d12ed88fb0f"),
-    doctorID: new ObjectId("65279febacce97acc3302f3c"),
+    patientID: new ObjectId("6529833f0e7babc4174c5f91"),
+    doctorID: new ObjectId("652983a00e7babc4174c5f97"),
     date: new Date(),
     medicines: [
       { name: "Aspirin", type: "Tablet" },
@@ -491,16 +490,16 @@ app.get('/get-doctor-info', async (req, res) => {
     ],
   },
   {
-    patientID: new ObjectId("652675a1ed54a6df4a66974b"),
-    doctorID: new ObjectId("65279febacce97acc3302f3c"),
+    patientID: new ObjectId("6529833f0e7babc4174c5f92"),
+    doctorID: new ObjectId("652983a00e7babc4174c5f97"),
     date: new Date(),
     medicines: [
       { name: "Lisinopril", type: "Tablet" },
     ],
   },
   {
-    patientID: new ObjectId("6525c68c1ff94d12ed88fb0f"),
-    doctorID: new ObjectId("6527a01eacce97acc3302f43"),
+    patientID: new ObjectId("6529833f0e7babc4174c5f91"),
+    doctorID: new ObjectId("652983a00e7babc4174c5f97"),
     date: new Date(),
     medicines: [],
   },
@@ -508,10 +507,6 @@ app.get('/get-doctor-info', async (req, res) => {
 
   await PrescriptionModel.create(prescriptionsData);
   */
-  
-
-// Define the route to get prescriptions
-app.get('/get-prescriptions/', async (req, res) => {
   try {
     // Find the patient with the given username
      // Replace with the actual logged username
@@ -679,6 +674,7 @@ app.get('/doctorsAppointments', async (req, res) => {
 // filter appointments by date/status for patient
 app.get('/patientsAppointments', async (req, res) => {
   try {
+    
     const patient = await PatientsModel.findOne({ username: logged.username });
 
     if (!patient) {

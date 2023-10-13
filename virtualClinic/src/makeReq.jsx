@@ -1,11 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function DoctorRegistrationForm() {
   const [doctorInfo, setDoctorInfo] = useState({});
   const [notes, setNotes] = useState('');
   const [formModified, setFormModified] = useState(false);
-
+  const navigate = useNavigate();
+  useEffect(() => {
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`)
+      .then((response) => {
+        const responseData = response.data;
+        if (responseData.type.toLowerCase() !== "doctor" || responseData.in !== true) {
+          navigate('/login')
+          return null;
+        }
+      })
+  }, []);
   useEffect(() => {
     axios.get('http://localhost:3001/get-doctor-info')
       .then((response) => {
@@ -42,6 +54,8 @@ function DoctorRegistrationForm() {
 
       // Optionally, you can display a success message to the user
       alert('Registration request submitted successfully.');
+      window.location.reload();
+
     } catch (error) {
       console.error('Error:', error);
 
@@ -79,6 +93,9 @@ function DoctorRegistrationForm() {
   return (
     <div style={containerStyle}>
       <h1 style={{ color: '#007BFF' }}>Doctor Registration</h1>
+      <div style={{ fontSize: '18px', fontWeight: 'bold', textAlign: 'left', paddingLeft: '60vw' }}>
+        <label style={{ fontSize: '20px', color: 'red' }}>Status:</label> {doctorInfo.enrolled}
+      </div>
       <form onSubmit={handleSubmit}>
 
         <label style={labelStyle}>Name:</label>

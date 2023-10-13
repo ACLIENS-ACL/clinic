@@ -13,8 +13,8 @@ import {
 } from 'mdb-react-ui-kit';
 
 function AdminDashboard() {
+  
   const navigate = useNavigate();
-
   useEffect(() => {
     // Fetch admin data from the server
     axios.get(`http://localhost:3001/get-user-type`).then((response) => {
