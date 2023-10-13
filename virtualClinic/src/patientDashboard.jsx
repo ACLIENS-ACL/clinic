@@ -86,7 +86,7 @@ function AdminDashboard() {
             <MDBCardBody>
               <MDBCardTitle>View Prescriptions</MDBCardTitle>
               <MDBCardText>View and manage your prescriptions.</MDBCardText>
-              <Link to="/">
+              <Link to="/myPrescriptions">
                 <MDBBtn color="secondary">View Prescriptions</MDBBtn>
               </Link>
             </MDBCardBody>

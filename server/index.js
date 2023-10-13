@@ -24,21 +24,43 @@ var logged = {
 
 mongoose.connect('mongodb://localhost:27017/clinic');
 
-// Register route for patients
+// Register route for patients and doctors
 app.post('/register-patient', (req, res) => {
-  const patientData = req.body;
-  PatientsModel.create(patientData)
-    .then(patient => res.json(patient))
-    .catch(err => res.status(400).json(err));
+  const userData = req.body;
+
+  // Check if a user with the same username already exists in PatientsModel
+  PatientsModel.findOne({ username: userData.username })
+    .then(existingPatient => {
+      if (existingPatient) {
+        return res.status(400).json({ message: 'Username already exists' });
+      } else {
+        // If the username is unique, create the new patient
+        PatientsModel.create(userData)
+          .then(patient => res.json(patient))
+          .catch(err => res.status(400).json(err));
+      }
+    })
+    .catch(err => res.status(500).json(err));
 });
 
-// Register route for doctors
 app.post('/register-doctor', (req, res) => {
-  const doctorData = req.body;
-  DoctorsModel.create(doctorData)
-    .then(doctor => res.json(doctor))
-    .catch(err => res.status(400).json(err));
+  const userData = req.body;
+
+  // Check if a user with the same username already exists in DoctorsModel
+  DoctorsModel.findOne({ username: userData.username })
+    .then(existingDoctor => {
+      if (existingDoctor) {
+        return res.status(400).json({ message: 'Username already exists' });
+      } else {
+        // If the username is unique, create the new doctor
+        DoctorsModel.create(userData)
+          .then(doctor => res.json(doctor))
+          .catch(err => res.status(400).json(err));
+      }
+    })
+    .catch(err => res.status(500).json(err));
 });
+
 
 app.post('/login-doctor', (req, res) => {
   const { username, password } = req.body;
@@ -176,9 +198,9 @@ app.post('/approve-doctor/:id', async (req, res) => {
     try {
       const doctorId = req.params.id;
   
-      await DoctorsModel.findByIdAndUpdate(doctorId, { enrolled: "Rejected" });
+      await DoctorsModel.deleteOne({ _id: doctorId });
   
-      res.json({ message: 'Doctor approved successfully' });
+      res.json({ message: 'Doctor Rejected Successfully' });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Internal server error' });
@@ -451,37 +473,76 @@ app.get('/get-doctor-info', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-//view a list of all my Prescriptions   (Req 54)
-
-app.post('/pre', async (req, res) => {
-  try {
-    const preData = req.body;
-    const newPrescription = new PrescriptionModel(preData);
-
-    await newPrescription.save();
-
-    res.json({ message: 'Prescription added successfully' });
-  } catch (error) {
-    console.error('Error: ', error.message);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-
 
 //--------------------------
 //view a list of all my Prescriptions   (Req 54)
 
-app.get('/get-prescriptions/:patientID', async (req, res) => {
-  try {
-    const patientID = req.params.patientID;
-    const prescriptions = await PrescriptionModel.find({ patientID });
 
-    if (!prescriptions || prescriptions.length === 0) {
-      return res.status(404).json({ message: 'No prescriptions found for the patient' });
+
+  //const ObjectId = mongoose.Types.ObjectId;
+  /*const prescriptionsData = [
+  {
+    patientID: new ObjectId("6525c68c1ff94d12ed88fb0f"),
+    doctorID: new ObjectId("65279febacce97acc3302f3c"),
+    date: new Date(),
+    medicines: [
+      { name: "Aspirin", type: "Tablet" },
+      { name: "Ibuprofen", type: "Capsule" },
+    ],
+  },
+  {
+    patientID: new ObjectId("652675a1ed54a6df4a66974b"),
+    doctorID: new ObjectId("65279febacce97acc3302f3c"),
+    date: new Date(),
+    medicines: [
+      { name: "Lisinopril", type: "Tablet" },
+    ],
+  },
+  {
+    patientID: new ObjectId("6525c68c1ff94d12ed88fb0f"),
+    doctorID: new ObjectId("6527a01eacce97acc3302f43"),
+    date: new Date(),
+    medicines: [],
+  },
+];
+
+  await PrescriptionModel.create(prescriptionsData);
+  */
+  
+
+// Define the route to get prescriptions
+app.get('/get-prescriptions/', async (req, res) => {
+  try {
+    // Find the patient with the given username
+     // Replace with the actual logged username
+    const patient = await PatientsModel.findOne({ username: logged.username });
+
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
     }
 
-    res.json(prescriptions);
+    // Find prescriptions for the patient
+    const prescriptions = await PrescriptionModel
+      .find({ patientID: patient._id })
+      .select('doctorID date medicines') // Select the fields you need
+      .populate({
+        path: 'doctorID',
+        select: 'name', // Select the doctor's name
+        model: DoctorsModel,
+      });
+
+    // Process the prescriptions to add the 'status' field
+    const updatedPrescriptions = prescriptions.map((prescription) => {
+      const status = prescription.medicines.length > 0 ? 'filled' : 'unfilled';
+      return {
+        medicines: prescription.medicines,
+        doctorName: prescription.doctorID.name,
+        date: prescription.date,
+        status: status,
+      };
+    });
+    console.log(updatedPrescriptions);
+    res.json(updatedPrescriptions);
   } catch (error) {
     console.error('Error: ', error.message);
     res.status(500).json({ message: 'Internal server error' });

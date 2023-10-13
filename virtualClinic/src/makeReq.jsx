@@ -50,103 +50,140 @@ function DoctorRegistrationForm() {
     }
   };
 
+  // Define your inline styles as JavaScript objects
+  const containerStyle = {
+    width: '75vw', // Set the width to 75% of the viewport width
+    margin: '0 auto', // Center the container horizontally
+  };
+
+  const labelStyle = {
+    fontWeight: 'bold',
+    marginRight: '10px',
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '5px',
+    marginBottom: '10px',
+  };
+
+  const buttonStyle = {
+    backgroundColor: formModified ? '#007BFF' : 'gray',
+    color: 'white',
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: formModified ? 'pointer' : 'not-allowed',
+  };
+
   return (
-    <div>
-      <h1>Doctor Registration</h1>
+    <div style={containerStyle}>
+      <h1 style={{ color: '#007BFF' }}>Doctor Registration</h1>
       <form onSubmit={handleSubmit}>
 
-        <label>Name:</label>
+        <label style={labelStyle}>Name:</label>
         <input
           type="text"
           name="name"
           value={doctorInfo.name || ''}
           onChange={handleInputChange}
+          style={inputStyle}
         />
         <br />
 
-        <label>Email:</label>
+        <label style={labelStyle}>Email:</label>
         <input
           type="text"
           name="email"
           value={doctorInfo.email || ''}
           onChange={handleInputChange}
+          style={inputStyle}
         />
         <br />
 
-        <label>Date of Birth:</label>
+        <label style={labelStyle}>Date of Birth:</label>
         <input
           type="text"
           name="dob"
           value={doctorInfo.dob || ''}
           onChange={handleInputChange}
+          style={inputStyle}
         />
         <br />
 
-        <label>Gender:</label>
+        <label style={labelStyle}>Gender:</label>
         <input
           type="text"
           name="gender"
           value={doctorInfo.gender || ''}
           onChange={handleInputChange}
+          style={inputStyle}
         />
         <br />
 
-        <label>Mobile Number:</label>
+        <label style={labelStyle}>Mobile Number:</label>
         <input
           type="text"
           name="mobileNumber"
           value={doctorInfo.mobileNumber || ''}
           onChange={handleInputChange}
+          style={inputStyle}
         />
         <br />
 
-        <label>Specialty:</label>
+        <label style={labelStyle}>Specialty:</label>
         <input
           type="text"
           name="specialty"
           value={doctorInfo.specialty || ''}
           onChange={handleInputChange}
+          style={inputStyle}
         />
         <br />
 
-        <label>Hourly Rate:</label>
+        <label style={labelStyle}>Hourly Rate:</label>
         <input
-          type="text"
+          type="Number"
+          min="0"
           name="hourlyRate"
           value={doctorInfo.hourlyRate || ''}
           onChange={handleInputChange}
+          style={inputStyle}
         />
         <br />
 
-        <label>Affiliation:</label>
+        <label style={labelStyle}>Affiliation:</label>
         <input
           type="text"
           name="affiliation"
           value={doctorInfo.affiliation || ''}
           onChange={handleInputChange}
+          style={inputStyle}
         />
         <br />
 
-        <label>Educational Background:</label>
+        <label style={labelStyle}>Educational Background:</label>
         <input
           type="text"
           name="educationalBackground"
           value={doctorInfo.educationalBackground || ''}
           onChange={handleInputChange}
+          style={inputStyle}
         />
         <br />
 
-        <label>Extra Notes:</label>
+        <label style={labelStyle}>Professional Summary:</label>
         <textarea
           name="extraNotes"
           value={doctorInfo.extraNotes || ''}
           onChange={handleInputChange}
+          style={inputStyle}
+          required // Make it a required field
           rows="4"
           cols="50"
         ></textarea>
         <br />
-
-        <button type="submit" disabled={!formModified}>
+        <button type="submit" disabled={!formModified} style={buttonStyle}>
           Submit Registration
         </button>
       </form>

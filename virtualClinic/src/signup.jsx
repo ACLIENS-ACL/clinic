@@ -15,6 +15,7 @@ import {
 } from 'mdb-react-ui-kit';
 
 function Signup() {
+  const [errorMessage, setErrorMessage] = useState('');
   const [userType, setUserType] = useState('patient'); // Default to 'patient'
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
@@ -75,15 +76,23 @@ function Signup() {
     }
 
     axios
-      .post(`http://localhost:3001/register-${userType}`, userData) // Use a dynamic endpoint based on userType
-      .then(result => {
-        console.log(result);
-        navigate('/login'); // Navigate to the /login route after successful submission
-      })
-      .catch(err => {
-        console.log(err);
-        // Handle error
-      });
+  .post(`http://localhost:3001/register-${userType}`, userData)
+  .then(result => {
+    console.log(result);
+    navigate('/login'); // Navigate to the /login route after successful submission
+  })
+  .catch(err => {
+    console.log(err);
+
+    if (err.response && err.response.data && err.response.data.message === 'Username already exists') {
+      // Display an error message to the user indicating that the username already exists.
+      setErrorMessage('Username already exists. Please choose a different username.');
+    } else {
+      // Handle other errors
+      console.error('An error occurred during registration:', err);
+    }
+  });
+
   };
 
   const formStyle = {
@@ -100,6 +109,14 @@ function Signup() {
         <MDBRow className='justify-content-center align-items-center m-5'>
           <MDBCard>
             <MDBCardBody className='px-4'>
+            {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
+              <div className="mt-4">
+                <p>Select User Type:</p>
+                <select value={userType} onChange={(e) => setUserType(e.target.value)} required>
+                  <option value="patient">Patient</option>
+                  <option value="doctor">Doctor</option>
+                </select>
+              </div>
               <h3 className="fw-bold mb-4 pb-2 pb-md-0 mb-md-5">
                 {userType === 'patient' ? 'Patient Registration' : 'Doctor Registration'}
               </h3>
@@ -166,13 +183,6 @@ function Signup() {
                 </MDBRow>
                 <MDBBtn className='mb-4' size='lg' type="submit" onSubmit={handleSubmit}>Submit</MDBBtn>
               </form>
-              <div className="mt-4">
-                <p>Select User Type:</p>
-                <select value={userType} onChange={(e) => setUserType(e.target.value)} required>
-                  <option value="patient">Patient</option>
-                  <option value="doctor">Doctor</option>
-                </select>
-              </div>
             </MDBCardBody>
           </MDBCard>
         </MDBRow>

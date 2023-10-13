@@ -1,35 +1,42 @@
 const mongoose = require('mongoose');
 
 const PrescriptionSchema = new mongoose.Schema({
-
   patientID: {
     type: mongoose.Types.ObjectId,
-    ref:'patients',
-    required: true
+    ref: 'patients',
+    required: true,
   },
   doctorID: {
     type: mongoose.Types.ObjectId,
-    ref:'doctors',
-    required: true
-
+    ref: 'doctors',
+    required: true,
   },
-  Date: Date,
+  date: Date,
   medicines: {
-    type: String,
-    enum: ['Aspirin', 'Lisinopril','Metformin', 'Ibuprofen'] ,
-    required: true
-  },
-  Status: {
-    type: String,
-    enum: ['filled', 'unfilled'] ,
-    default: 'filled',
-    required: true
+    type: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
+        type: {
+          type: String,
+          required: true,
+        }
+      }
+    ],
+    default: []
   }
-  // diagnosis: String,
-  // MedicationDetails: String
+});
 
-} ,{ timestamps: true }
-);
+// Define a virtual attribute for 'status'
+PrescriptionSchema.virtual('status').get(function () {
+  if (this.medicines.length === 0) {
+    return 'unfilled';
+  } else {
+    return 'filled';
+  }
+});
 
 const PrescriptionModel = mongoose.model('prescriptions', PrescriptionSchema);
 module.exports = PrescriptionModel;

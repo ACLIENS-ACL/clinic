@@ -1,7 +1,49 @@
-// DoctorRequests.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
+const containerStyles = {
+  maxWidth: '800px',
+  margin: '0 auto',
+  padding: '20px',
+  background: '#f8f9fa',
+  border: '1px solid #ced4da',
+  borderRadius: '5px',
+  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+};
+
+const headerStyles = {
+  fontSize: '24px',
+  fontWeight: 'bold',
+  color: '#007BFF',
+  marginBottom: '20px',
+};
+
+const listItemStyles = {
+  border: '1px solid #ccc',
+  borderRadius: '5px',
+  padding: '15px',
+  marginBottom: '20px',
+  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+  backgroundColor: 'white',
+};
+
+const buttonStyles = {
+  marginRight: '10px',
+  backgroundColor: '#007BFF',
+  color: 'white',
+  border: 'none',
+  padding: '5px 10px',
+  borderRadius: '3px',
+  cursor: 'pointer',
+};
+const rejectButtonStyles = {
+  backgroundColor: 'red', // Change the background color to red
+  color: 'white', // Change the text color to white
+  border: 'none',
+  padding: '5px 10px',
+  borderRadius: '3px',
+  cursor: 'pointer',
+};
 function DoctorRequests() {
   const [requests, setRequests] = useState([]);
   const [message, setMessage] = useState('');
@@ -45,26 +87,34 @@ function DoctorRequests() {
   };
 
   return (
-    <div>
-      <h2>Doctor Requests</h2>
+    <div style={containerStyles}>
+      <h2 style={headerStyles}>Doctor Requests</h2>
       {message && <div className="alert alert-danger">{message}</div>}
       <ul>
         {requests.map((request) => (
-          <li key={request._id}>
+          <li key={request._id} style={listItemStyles}>
             <strong>Name:</strong> {request.name}<br />
-            <strong>Specialization:</strong> {request.specialization}<br />
+            <strong>Specialization:</strong> {request.specialty === 'extraNotes' ? 'Professional Experience' : request.specialty}<br />
             <strong>Other Properties:</strong>
             <ul>
               {Object.keys(request)
-                .filter((key) => key !== 'password' && key !== 'enrolled' && key!== '__v' )
+                .filter(
+                  (key) =>
+                    key !== 'password' &&
+                    key !== 'enrolled' &&
+                    key !== '__v' &&
+                    key !== '_id' &&
+                    key !== 'availableSlots' &&
+                    key !== 'username' 
+                )
                 .map((key) => (
                   <li key={key}>
-                    {key}: {request[key]}
+                    {key === 'extraNotes' ? 'Professional Experience' : key}: {request[key]}
                   </li>
                 ))}
             </ul>
-            <button onClick={() => handleApprove(request._id)}>Approve</button>
-            <button onClick={() => handleReject(request._id)}>Reject</button>
+            <button style={buttonStyles} onClick={() => handleApprove(request._id)}>Approve</button>
+            <button style={rejectButtonStyles} onClick={() => handleReject(request._id)}>Reject</button>
           </li>
         ))}
       </ul>

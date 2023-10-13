@@ -19,6 +19,7 @@ import ListDoctors from './listDoctors'
 import ViewPatients from './viewPatients'
 import PatientAppointments from './patientAppointments'
 import DoctorAppointments from './doctorAppointments'
+import Prescriptions from './presList'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
         <Route path="/myFamilyMembers" element={<MyFamilyMembers />} />
         <Route path="/myPAppointments" element={<PatientAppointments />} />
         <Route path="/myDAppointments" element={<DoctorAppointments />} />
+        <Route path="/myPrescriptions" element={<Prescriptions />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
