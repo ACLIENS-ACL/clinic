@@ -7,12 +7,19 @@ function DoctorRegistrationForm() {
   const [notes, setNotes] = useState('');
   const [formModified, setFormModified] = useState(false);
   const navigate = useNavigate();
+  const specialties = [
+    'Cardiology',
+    'Dermatology',
+    'Orthopedics',
+    'Ophthalmology',
+    'Pediatrics',
+  ];
   useEffect(() => {
     // Fetch admin data from the server
     axios.get(`http://localhost:3001/get-user-type`)
       .then((response) => {
         const responseData = response.data;
-        if (responseData.type.toLowerCase() !== "doctor" || responseData.in !== true) {
+        if (responseData.type.toLowerCase() !== "doctornotreg") {
           navigate('/login')
           return null;
         }
@@ -149,13 +156,19 @@ function DoctorRegistrationForm() {
         <br />
 
         <label style={labelStyle}>Specialty:</label>
-        <input
-          type="text"
+        <select
           name="specialty"
           value={doctorInfo.specialty || ''}
           onChange={handleInputChange}
           style={inputStyle}
-        />
+        >
+        <option value="">Select a specialty</option>
+        {specialties.map((specialty, index) => (
+          <option key={index} value={specialty}>
+            {specialty}
+          </option>
+        ))}
+      </select>
         <br />
 
         <label style={labelStyle}>Hourly Rate:</label>

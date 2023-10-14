@@ -69,12 +69,12 @@ app.post('/login-doctor', (req, res) => {
   DoctorsModel.findOne({ username: username.toLowerCase() })
     .then((user) => {
       if (user) {
-        
         if (user.password === password) {
           logged.in = true;
           logged.username = username;
           logged.type = "doctor";
-          if (user.enrolled === "Rejected" || user.enrolled === "Request Not Made") {
+          if (user.enrolled === "Pending" || user.enrolled === "Request Not Made") {
+            logged.type = "doctornotreg";
             res.status(200).json({ message: "Success But Not Enrolled", enrolledStatus: user.enrolled });
           } else {
             res.status(200).json({ message: "Success" });
