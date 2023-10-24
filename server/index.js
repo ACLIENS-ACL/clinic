@@ -23,6 +23,14 @@ var logged = {
 };
 
 mongoose.connect('mongodb://localhost:27017/clinic');
+// mongoose.connect('mongodb://0.0.0.0:27017/clinic', { useNewUrlParser: true, useUnifiedTopology: true })
+//   .then(() => {
+//     console.log('Connected to MongoDB');
+//   })
+//   .catch(error => {
+//     console.error('Error connecting to MongoDB:', error);
+//   });
+
 
 // Register route for patients and doctors
 app.post('/register-patient', (req, res) => {
@@ -788,5 +796,14 @@ app.get('/get-doctors-session-price/', async (req, res) => {
   }
 });
 
+//Doctor Logout
+app.post('/logout', (req, res) => {
+  logged = {
+    username: "",
+    in: "",
+    type: ""
+  };
+  res.status(200).json({ message: 'logged out successfully' });
+});
 
   app.listen(3001,'localhost')

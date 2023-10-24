@@ -19,8 +19,36 @@ function AdminDashboard() {
       })
   }, []);
 
-  
+  const handleLogout = () => {
+    axios.post(`http://localhost:3001/logout`)
+      .then(() => {
+        localStorage.removeItem('userToken'); 
+        navigate('/login');
+      })
+      .catch((error) => {
+        console.error('Logout failed:', error);
+      });
+  };
   return (
+    <div>
+    <nav className="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+      <div className="container">
+        <a className="navbar-brand" href="/">Admin Dashboard</a>
+        <ul className="navbar-nav ml-auto">
+          <li className="nav-item">
+            <MDBBtn color="danger" onClick={handleLogout}>
+              Logout
+            </MDBBtn>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    
+
+
+
+    <div style={{ marginTop: '200px' }}>
     <MDBContainer className="mt-5">
       <MDBRow className="justify-content-center">
         {/* Existing Cards */}
@@ -111,7 +139,11 @@ function AdminDashboard() {
         </MDBCol>
       </MDBRow>
     </MDBContainer>
+    </div>
+    </div>
   );
+
+  
 }
 
 export default AdminDashboard;
