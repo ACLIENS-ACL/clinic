@@ -20,6 +20,8 @@ import ViewPatients from './viewPatients'
 import PatientAppointments from './patientAppointments'
 import DoctorAppointments from './doctorAppointments'
 import Prescriptions from './presList'
+import HealthPackages from './availpackages'
+import Subscriptions from './subscriptions'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 function App() {
@@ -46,6 +48,8 @@ function App() {
         <Route path="/myPAppointments" element={<PatientAppointments />} />
         <Route path="/myDAppointments" element={<DoctorAppointments />} />
         <Route path="/myPrescriptions" element={<Prescriptions />} />
+        <Route path="/healthPackages" element={<HealthPackages />} />
+        <Route path="/mySubscription" element={<Subscriptions />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>

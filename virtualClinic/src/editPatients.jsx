@@ -82,34 +82,7 @@ function RemovePatients() {
     textAlign: 'center',
   };
 
-  const handleLogout = () => {
-    axios.post(`http://localhost:3001/logout`)
-      .then(() => {
-        localStorage.removeItem('userToken'); 
-        navigate('/login');
-      })
-      .catch((error) => {
-        console.error('Logout failed:', error);
-      });
-  };
   return (
-
-    <div>
-    <nav className="navbar navbar-expand-lg navbar-light bg-light fixed-top">
-      <div className="container">
-        
-        <ul className="navbar-nav ml-auto">
-          <li className="nav-item">
-            <MDBBtn color="danger" onClick={handleLogout}>
-              Logout
-            </MDBBtn>
-          </li>
-        </ul>
-      </div>
-    </nav>
-
-    <div style={{ marginTop: '200px' }}>
-      
     <div style={containerStyles}>
       <h2 style={headerStyles}>Patients</h2>
       {message && <div className="alert alert-danger">{message}</div>}
@@ -141,9 +114,6 @@ function RemovePatients() {
           ))}
         </tbody>
       </table>
-    </div>
-
-    </div>
     </div>
   );
 }
