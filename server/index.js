@@ -23,14 +23,6 @@ var logged = {
 };
 
 mongoose.connect('mongodb://localhost:27017/clinic');
-// mongoose.connect('mongodb://0.0.0.0:27017/clinic', { useNewUrlParser: true, useUnifiedTopology: true })
-//   .then(() => {
-//     console.log('Connected to MongoDB');
-//   })
-//   .catch(error => {
-//     console.error('Error connecting to MongoDB:', error);
-//   });
-
 
 // Register route for patients and doctors
 app.post('/register-patient', (req, res) => {
@@ -796,7 +788,129 @@ app.get('/get-doctors-session-price/', async (req, res) => {
   }
 });
 
-//Doctor Logout
+app.get('/packages', async (req, res) => {
+  try {
+    const packages = await PackagesModel.find();
+    res.json(packages);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+app.post('/subscribe', async (req, res) => {
+  const { self, packageId, familyMembers } = req.body;
+  try {
+    // Update the user's subscription
+    if(self){
+    await PatientsModel.findOneAndUpdate(
+      { username: logged.username },
+      { subscribedPackage: packageId, subscriptionDate: new Date(), canceled: null}
+    );
+    }
+    const user = await PatientsModel.findOne({ username: logged.username });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const members = user.familyMembers;
+
+    familyMembers.forEach((member) => {
+      members.forEach((patientMem) => {
+        if (patientMem.name === member) {
+          patientMem.subscribedPackage = packageId;
+          patientMem.subscriptionDate=new Date();
+          patientMem.canceled=null;
+        }
+      });
+    });
+    const fam = await PatientsModel.findOneAndUpdate(
+      { username: logged.username },
+      { familyMembers: members }
+    );
+
+    if (!fam) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Subscription successful' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Subscription failed' });
+  }
+});
+app.get('/get-my-package', async (req, res) => {
+  const result=new Object();
+  
+  const user=await PatientsModel.findOne({username:logged.username});
+  const package=await PackagesModel.findOne({_id:user.subscribedPackage});
+
+  result.package=package;
+  result.subscribedDate=user.subscriptionDate;
+  result.canceled=user.canceled;
+
+  res.json(result);
+});
+app.post('/cancel-subscription', async (req, res) => {
+  await PatientsModel.findOneAndUpdate({username:logged.username},{canceled:new Date()})
+});
+app.get('/get-family-member-package/:id', async (req, res) => {
+  const memberId = req.params.id;
+
+  try {
+      // Query the PackagesModel to find the family member's package
+      const package = await PackagesModel.findOne({ _id: memberId });
+      if (package) {
+          res.json(package);
+          console.log(package);
+      } else {
+          res.status(404).json({ error: 'Family member not found' });
+      }
+  } catch (error) {
+      res.status(500).json({ error: 'Server error' });
+  }
+});
+app.get('/get-family-member-package-status/:id', async (req, res) => {
+  try {
+      const memberId = req.params.id;
+      // Query the PackagesModel to find the family member's package
+      const patient = await PatientsModel.findOne({ username:logged.username});
+      const familyMember = patient.familyMembers.find((member) => member._id.equals(memberId));
+
+      if (!familyMember) {
+        return res.status(404).json({ error: 'Family member not found for the given memberID' });
+      }
+
+      res.json({
+        canceled: familyMember.canceled,
+        subscriptionDate: familyMember.subscriptionDate,
+      });
+  } catch (error) {
+      res.status(500).json({ error: 'Server error' });
+  }
+});
+app.post('/cancel-family-subscription/:id', async (req, res) => {
+  try {
+      const memberId = req.params.id;
+    console.log(memberId);
+      // Query the PatientsModel to find the family member's package
+      const patient = await PatientsModel.findOne({ username: logged.username });
+      const familyMember = patient.familyMembers.find((member) => member._id.equals(memberId));
+
+      if (familyMember) {
+          // Update the familyMember's 'canceled' field with the current date
+          familyMember.canceled = new Date();
+
+          // Save the changes to the database
+          await patient.save();
+
+          res.status(200).json({ message: 'Subscription canceled successfully' });
+      } else {
+          res.status(404).json({ error: 'Family member not found for the given memberID' });
+      }
+  } catch (error) {
+      res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.post('/logout', (req, res) => {
   logged = {
     username: "",
@@ -805,5 +919,4 @@ app.post('/logout', (req, res) => {
   };
   res.status(200).json({ message: 'logged out successfully' });
 });
-
   app.listen(3001,'localhost')

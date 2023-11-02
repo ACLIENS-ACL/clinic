@@ -18,6 +18,20 @@ const PatientsSchema = new mongoose.Schema({
         age: Number,
         gender: String,
         relation: String,
+        subscribedPackage: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'packages',
+          default: null,
+        },
+        subscriptionDate: {
+          type: Date,
+          default: null,
+        },
+        canceled: {
+          type: Date,
+          default: null,
+        },
+         
       }
     ],
     default: [], // Default to an empty array
@@ -31,6 +45,15 @@ const PatientsSchema = new mongoose.Schema({
     ref: 'packages',
     default: null,
   },
+  subscriptionDate: {
+    type: Date,
+    default: null,
+  },
+  canceled: {
+    type: Date,
+    default: null,
+  },
+    
   userType: {
     type: String,
     default: 'patient',

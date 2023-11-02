@@ -26,33 +26,7 @@ function AdminDashboard() {
     });
   }, []);
 
-  const handleLogout = () => {
-    axios.post(`http://localhost:3001/logout`)
-      .then(() => {
-        localStorage.removeItem('userToken'); 
-        navigate('/login');
-      })
-      .catch((error) => {
-        console.error('Logout failed:', error);
-      });
-  };
   return (
-
-    <div>
-    <nav className="navbar navbar-expand-lg navbar-light bg-light fixed-top">
-      <div className="container">
-        <a className="navbar-brand" href="/">Patient Dashboard</a>
-        <ul className="navbar-nav ml-auto">
-          <li className="nav-item">
-            <MDBBtn color="danger" onClick={handleLogout}>
-              Logout
-            </MDBBtn>
-          </li>
-        </ul>
-      </div>
-    </nav>
-
-    <div style={{ marginTop: '200px' }}>
     <MDBContainer className="mt-5">
       <MDBRow className="justify-content-center">
         {/* Add Family Members Card */}
@@ -93,6 +67,19 @@ function AdminDashboard() {
           </MDBCard>
         </MDBCol>
 
+        {/* View Subscription Packages Card */}
+        <MDBCol md="4" className="mb-4">
+          <MDBCard>
+            <MDBCardBody>
+              <MDBCardTitle>View Available Subscription Packages</MDBCardTitle>
+              <MDBCardText>View and subscribe to subscription packages</MDBCardText>
+              <Link to="/healthPackages">
+                <MDBBtn color="success">View Packages</MDBBtn>
+              </Link>
+            </MDBCardBody>
+          </MDBCard>
+        </MDBCol>
+
         {/* View My Appointments Card */}
         <MDBCol md="4" className="mb-4">
           <MDBCard>
@@ -101,6 +88,18 @@ function AdminDashboard() {
               <MDBCardText>View and manage your scheduled appointments.</MDBCardText>
               <Link to="/myPAppointments">
                 <MDBBtn color="warning">View Appointments</MDBBtn>
+              </Link>
+            </MDBCardBody>
+          </MDBCard>
+        </MDBCol>
+        {/* View Subscription Card */}
+        <MDBCol md="4" className="mb-4">
+          <MDBCard>
+            <MDBCardBody>
+              <MDBCardTitle>View my Subscription</MDBCardTitle>
+              <MDBCardText>View and manage your and your family members Subscriptions.</MDBCardText>
+              <Link to="/mySubscription">
+                <MDBBtn color="secondary">View Subscriptions</MDBBtn>
               </Link>
             </MDBCardBody>
           </MDBCard>
@@ -120,9 +119,6 @@ function AdminDashboard() {
         </MDBCol>
       </MDBRow>
     </MDBContainer>
-
-    </div>
-    </div>
   );
 }
 
