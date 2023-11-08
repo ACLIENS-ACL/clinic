@@ -21,8 +21,8 @@ var logged = {
   in: "",
   type: ""
 };
-
 mongoose.connect('mongodb://localhost:27017/clinic');
+
 
 // Register route for patients and doctors
 app.post('/register-patient', (req, res) => {
@@ -919,4 +919,60 @@ app.post('/logout', (req, res) => {
   };
   res.status(200).json({ message: 'logged out successfully' });
 });
+
+
+app.put('/change-password', async (req, res) => {
+  const { username, password, newPassword,confirmNewPassword } = req.body;
+  
+
+  try {
+    let user="";
+    console.log(logged.type);
+
+    if(logged.type === "patient")
+    {
+       user = await PatientsModel.findOne({  username: logged.username.toLowerCase()  });
+    }
+    else if(logged.type === "admin")
+    {
+       user = await AdminsModel.findOne({  username: logged.username.toLowerCase()  });
+    }
+
+    else if(logged.type === 'doctor')
+    {
+       user = await DoctorsModel.findOne({  username: logged.username.toLowerCase()  });
+    }
+    else{
+      return res.status(400).json({ message: 'Invalid user type' });
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    else if (user.password !== password) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+    else if (newPassword !== confirmNewPassword) {
+      return res.status(500).json({ error: "Password confirmation doesn't match entered password" });
+      
+    }
+    else if(
+        newPassword.length < 8 ||  !/[A-Z]/.test(newPassword) || !/\d/.test(newPassword) || /\s/.test(newPassword)  ) 
+        {
+          return res.status(400).json({
+            message: 'New password does not meet the required criteria.',
+          });
+        }
+    else{
+      user.password = newPassword;
+       await user.save();
+       res.status(200).json({ message: 'Password changed successfully' });
+    }
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
   app.listen(3001,'localhost')
