@@ -21,7 +21,13 @@ var logged = {
   in: "",
   type: ""
 };
-mongoose.connect('mongodb://localhost:27017/clinic');
+//mongoose.connect('mongodb://localhost:27017/clinic');
+
+mongoose.connect('mongodb://0.0.0.0:27017').then(() => {
+  console.log('Connected to the database');
+}).catch((err) => {
+  console.error('Error connecting to the database', err);
+});
 
 
 // Register route for patients and doctors
@@ -974,5 +980,99 @@ app.put('/change-password', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+//upload/remove documents (PDF,JPEG,JPG,PNG) for my medical history (Req 2)
+const fs = require('fs');
+const path = require('path');
+
+app.put('/upload-document', async (req, res) => {
+  const { document } = req.body;
+  const { type, data, filename } = document;
+  const allowedTypes = ['pdf', 'jpeg', 'jpg', 'png'];
+  const extension = filename.split('.').pop().toLowerCase();
+
+  if (!allowedTypes.includes(extension)) {
+    return res.status(400).send('Invalid file type');
+  }
+
+  const filePath = path.join(__dirname, 'medical-history', `${filename}`);
+  const fileExists = fs.existsSync(filePath);
+
+  if (type === 'add') {
+    if (fileExists) {
+      return res.status(400).send('File already exists');
+    }
+
+    fs.writeFileSync(filePath, data, 'base64');
+    return res.status(200).send('File uploaded successfully');
+  } else if (type === 'remove') {
+    if (!fileExists) {
+      return res.status(400).send('File does not exist');
+    }
+
+    fs.unlinkSync(filePath);
+    return res.status(200).send('File removed successfully');
+  } else {
+    return res.status(400).send('Invalid request type');
+  }
+});
+//upload and submit required documents upon registrationas a doctor such as ID, Medical licenses and medical degree 
+app.put('/upload-document', async (req, res) => {
+  const { document } = req.body;
+// Upload and submit required documents upon registration as a doctor such as ID, Medical licenses and medical degree
+app.put('/upload-doctor-documents', async (req, res) => {
+  const { document } = req.body;
+  const { type, data, filename } = document;
+  const allowedTypes = ['pdf', 'jpeg', 'jpg', 'png'];
+  const extension = filename.split('.').pop().toLowerCase();
+
+  if (!allowedTypes.includes(extension)) {
+    return res.status(400).send('Invalid file type');
+  }
+
+  const filePath = path.join(__dirname, 'medical-history', `${filename}`);
+  const fileExists = fs.existsSync(filePath);
+
+  if (type === 'add') {
+    if (fileExists) {
+      return res.status(400).send('File already exists');
+    }
+
+    fs.writeFileSync(filePath, data, 'base64');
+    return res.status(200).send('File uploaded successfully');
+  } else if (type === 'remove') {
+    if (!fileExists) {
+      return res.status(400).send('File does not exist');
+    }
+
+    fs.unlinkSync(filePath);
+    return res.status(200).send('File removed successfully');
+  } else {
+    return res.status(400).send('Invalid request type');
+  }
+});
+//request the employment contract
+app.post('/employment-contract', async (req, res) => {
+  // code to retrieve employment contract from database or file system
+  const employmentContract = "This is the employment contract text.";
+
+  res.status(200).send(employmentContract);
+});
+
+app.post('/accept-employment-contract', async (req, res) => {
+  // code to update user's employment contract acceptance status in database
+  const userId = req.body.userId;
+  const accepted = req.body.accepted;
+
+  // code to update user's employment contract acceptance status in database
+  res.status(200).send(`Employment contract acceptance status updated for user ${userId}.`);
+});
+  const userId = req.body.userId;
+  const accepted = req.body.accepted;
+
+  // code to update user's employment contract acceptance status in database
+  res.status(200).send(`Employment contract acceptance status updated for user ${userId}.`);
+});
+
+
 
   app.listen(3001,'localhost')
