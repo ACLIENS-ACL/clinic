@@ -1074,5 +1074,90 @@ app.post('/accept-employment-contract', async (req, res) => {
 });
 
 
+// Define a route to allow a doctor to add a new health record for a patient
+app.post('/add-health-record/:patientId', async (req, res) => {
+  try {
+    const patientId = req.params.patientId; 
+    const { healthRecord } = req.body; 
+
+    // Check if healthRecord is provided
+    if (!healthRecord) {
+      return res.status(400).json({ error: 'A healthRecord is required.' });
+    }
+
+
+    // Find the patient by patientId
+    const patient = await PatientsModel.findById(patientId);
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found.' });
+    }
+
+    // Add the new health record to the patient's healthRecords array
+    patient.healthRecords.push(healthRecord);
+
+    // Save the updated patient document to the database
+    await patient.save();
+
+    return res.status(201).json(patient);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// server-side route to view uploaded health records 	Patient can only see their own records. Doctor can only see the records of patients who have had at least one appointment with them.
+app.get('/get-health-records/:patientId', async (req, res) => {
+  try {
+    const patientId = req.params.patientId; 
+
+    // Check if patientId is provided
+    if (!patientId) {
+      return res.status(400).json({ error: 'A patientId is required.' });
+    }
+
+    // Find the patient by patientId
+    const patient = await PatientsModel.findById(patientId);
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found.' });
+    }
+
+    // Check if the logged in user is the patient or a doctor
+    if (logged.type === 'patient') {
+      // If the logged in user is the patient, return the patient's health records
+      return res.status(200).json(patient.healthRecords);
+    } else if (logged.type === 'doctor') {
+      // If the logged in user is a doctor, check if the patient has had an appointment with the doctor
+      const doctor = await DoctorsModel.findOne({ username: logged.username });
+      const appointment = await AppointmentModel.findOne({ doctor: doctor._id, patient: patient._id });
+
+      if (!appointment) {
+        return res.status(403).json({ error: 'You are not authorized to view this patient\'s health records.' });
+      }
+
+      // If the patient has had an appointment with the doctor, return the patient's health records
+      return res.status(200).json(patient.healthRecords);
+    } else {
+      // If the logged in user is neither a patient nor a doctor, return an error
+      return res.status(403).json({ error: 'You are not authorized to view this patient\'s health records.' });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+);
+
+  
+
+
+
+
+
+
+
+
+
 
   app.listen(3001,'localhost')
