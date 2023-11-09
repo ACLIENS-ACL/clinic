@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+require("dotenv").config();
 const PatientsModel = require('./models/patients');
 const DoctorsModel = require('./models/doctors');
 const AdminsModel = require('./models/admins');
@@ -8,7 +9,7 @@ const PackagesModel = require('./models/packages');
 const AppointmentsModel=require('./models/appointment');
 const PrescriptionModel=require('./models/prescriptions');
 const AppointmentModel = require('./models/appointment');
-
+const MongoURI = process.env.MONGO_URI;
 const app = express();
 
 app.use(express.json());
@@ -16,18 +17,20 @@ app.use(express.json());
 app.use(cors({ credentials: true, origin: true }));
 
 
+
 var logged = {
   username: "",
   in: "",
   type: ""
 };
-//mongoose.connect('mongodb://localhost:27017/clinic');
 
-mongoose.connect('mongodb://0.0.0.0:27017').then(() => {
-  console.log('Connected to the database');
-}).catch((err) => {
-  console.error('Error connecting to the database', err);
-});
+ //mongoose.connect('mongodb://localhost:27017/clinic');
+
+// mongoose.connect('mongodb://0.0.0.0:27017').then(() => {
+//   console.log('Connected to the database');
+// }).catch((err) => {
+//   console.error('Error connecting to the database', err);
+// });
 
 
 // Register route for patients and doctors
@@ -1157,6 +1160,121 @@ app.get('/get-health-records/:patientId', async (req, res) => {
 
 
 
+
+
+
+
+// patient payment choice for appointments (req 20 & 21)
+
+
+
+// app.post('/process-payment', async (req, res) => {
+//   try {
+//     const { paymentMethod, amount, appointmentId } = req.body;
+//     const patient = await PatientsModel.findOne({ username: logged.username });
+//     const appointment = await AppointmentModel.findById(appointmentId);
+    
+//     if (paymentMethod === 'wallet') {
+//              try {
+//               if (!patient || !appointment ) {
+//                 return res.status(400).json({ error: 'Invalid patient or appointment ' });
+//               }
+//           if (appointment.paid == true)
+//           {
+//             return res.status(400).json({ error: 'appointment is already paid ' });
+//           }
+          
+//               if (patient.walletBalance < appointment.appointmentFee) {
+//                 return res.status(400).json({ error: 'Insufficient funds in the wallet' });
+//               }
+          
+//               patient.walletBalance -= appointment.appointmentFee;
+//               await patient.save();
+//               appointment.paid = true;
+//               await appointment.save();
+//               res.json({ message: 'Payment successful using wallet' });
+//             } catch (error) {
+            
+//               res.status(500).json({ error: 'An error occurred while processing wallet payment' });
+//             }
+
+//           }
+//           else if (paymentMethod === 'creditCard') {
+//                   try {
+
+//                     if (!patient || !appointment ) {
+//                       return res.status(400).json({ error: 'Invalid patient or appointment ' });
+//                     }
+//                else if (appointment.paid == true)
+//                    {
+//                   return res.status(400).json({ error: 'appointment is already paid ' });
+//                   }
+//                     else{
+//                           const paymentIntent = await stripe.paymentIntents.create({
+//                             currency: "EGP",
+//                             amount: amount,
+//                             automatic_payment_methods: { enabled: true },
+//                           });  res.send({
+//                             clientSecret: paymentIntent.client_secret,
+//                           });
+//                           appointment.paid = true;
+//                           await appointment.save();
+//                         }
+
+//                         } catch (e) {
+//                           return res.status(400).send({
+//                             error: {
+//                               message: e.message,
+//                             },
+//                           });
+//                         }       }     
+//               } catch (error) {
+//                 // Handle errors, log them, and return an error response
+//                 res.status(500).json({ error: 'An error occurred while processing payment' });
+//               }
+//             });
+
+
+    // patient view my wallet
+    app.get('/wallet-balance/:username', async (req, res) => {
+      try{
+       const username = req.params.username;
+        const patient = await PatientsModel.findOne({ username: logged.username });
+    
+      if (patient) {
+        res.json({ walletBalance: patient.walletBalance });
+      } else {
+        res.status(404).json({ error: 'Patient not found' });
+      }
+    }
+    catch (err) {
+      console.log(err);
+    }
+    });
+
+
+// doctor view my wallet
+    app.get('/doc-wallet-balance/:username', async (req, res) => {
+      try{
+        const username = req.params.username;
+        const doctor = await DoctorsModel.findOne({ username: logged.username });
+    
+      if (doctor) {
+        res.json({ walletBalance: doctor.walletBalance });
+      } else {
+        res.status(404).json({ error: 'doc not found' });
+      }
+    }
+    catch (err) {
+      console.log(err);
+    }
+    });
+   
+
+  
+    
+
+    
 
 
 

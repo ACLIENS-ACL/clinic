@@ -9,6 +9,11 @@ const UsersSchema = new mongoose.Schema({
   gender: String,
   mobileNumber: String,
   specialty: String,
+  walletBalance:{
+    type: Number,
+          default: 0,
+
+  },
   userType: {
     type: String,
     default: 'doctor',

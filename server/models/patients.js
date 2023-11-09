@@ -10,6 +10,11 @@ const PatientsSchema = new mongoose.Schema({
   mobileNumber: String,
   emergencyContactName: String,
   emergencyContactNumber: String,
+  walletBalance:{
+    type: Number,
+          default: 0,
+
+  },
   familyMembers: {
     type: [
       {
