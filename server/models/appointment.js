@@ -6,6 +6,21 @@ const AppointmentSchema = new mongoose.Schema({
     ref: 'patients',
     required: true,
   },
+  familyMember:{
+    type: {
+      account: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'patients',
+        default: null,
+      },
+      name: String,
+      nationalID: String,
+      age: Number,
+      gender: String,
+      relation: String,
+    },
+    default:null
+  },
   doctor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'doctors',
@@ -15,7 +30,14 @@ const AppointmentSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  
+  type:{
+    type:String,
+    default: "new"
+  },
+  followedUp: {
+    type: Boolean,
+    default: false,
+  },
   // Add the 'cancelled' boolean attribute with default false
   cancelled: {
     type: Boolean,

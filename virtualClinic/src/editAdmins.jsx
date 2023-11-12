@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
 
 function RemoveAdmins() {
   const navigate = useNavigate();
@@ -44,6 +45,7 @@ function RemoveAdmins() {
 
   return (
     <div>
+      <Navbar/>
       <h2>Admins</h2>
       {message && <div className="alert alert-danger">{message}</div>}
       <table>

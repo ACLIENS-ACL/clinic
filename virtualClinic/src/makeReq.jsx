@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
 
 function DoctorRegistrationForm() {
   const [doctorInfo, setDoctorInfo] = useState({});
@@ -99,6 +100,7 @@ function DoctorRegistrationForm() {
 
   return (
     <div style={containerStyle}>
+      <Navbar/>
       <h1 style={{ color: '#007BFF' }}>Doctor Registration</h1>
       <div style={{ fontSize: '18px', fontWeight: 'bold', textAlign: 'left', paddingLeft: '60vw' }}>
         <label style={{ fontSize: '20px', color: 'red' }}>Status:</label> {doctorInfo.enrolled}

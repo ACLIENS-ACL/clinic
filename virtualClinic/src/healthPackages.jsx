@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
 
 function HealthPackages() {
   const [packages, setPackages] = useState([]);
@@ -82,6 +83,7 @@ function HealthPackages() {
 
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+      <Navbar/>
       <h1>Health Packages</h1>
       <div>
         <h2>Ad/Update Package</h2>

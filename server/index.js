@@ -1,7 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require("dotenv").config();
 const PatientsModel = require('./models/patients');
 const DoctorsModel = require('./models/doctors');
 const AdminsModel = require('./models/admins');
@@ -9,10 +8,27 @@ const PackagesModel = require('./models/packages');
 const AppointmentsModel=require('./models/appointment');
 const PrescriptionModel=require('./models/prescriptions');
 const AppointmentModel = require('./models/appointment');
-const MongoURI = process.env.MONGO_URI;
-const app = express();
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const multer = require('multer');
+const nodemailer = require('nodemailer');
+const path = require('path');
+const fs = require('fs');
 
+const uploadDirectory = 'uploads';
+
+if (!fs.existsSync(uploadDirectory)) {
+  fs.mkdirSync(uploadDirectory);
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Define the folder where uploaded files will be stored
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+  },
+});
+const upload = multer({ storage });
+const app = express();
 
 app.use(express.json());
 // Enable CORS with credentials option
@@ -25,37 +41,94 @@ var logged = {
   type: ""
 };
 
- //mongoose.connect('mongodb://localhost:27017/clinic');
+mongoose.connect('mongodb://localhost:27017/clinic');
 
-// mongoose.connect('mongodb://0.0.0.0:27017').then(() => {
-//   console.log('Connected to the database');
-// }).catch((err) => {
-//   console.error('Error connecting to the database', err);
-// });
 
+
+// Create a transporter with your email service credentials
+const transporter = nodemailer.createTransport({
+  service: 'Gmail', // e.g., 'Gmail', 'Outlook', 'SendGrid', etc.
+  auth: {
+    user: 'acliensproject@gmail.com', // Your email address
+    pass: 'kbthzovtwwgqgbin', // Your email password
+  },
+});
+
+// Function to send an email with OTP
+const sendOTPByEmail = (toEmail, otp) => {
+  const mailOptions = {
+    from: 'acliensproject@gmail.com',
+    to: toEmail, // User's email address
+    subject: 'Your OTP for Password Reset',
+    text: `Your OTP for password reset is: ${otp}`,
+    
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('Error sending email: ', error);
+    } else {
+    }
+  });
+};
 
 // Register route for patients and doctors
-app.post('/register-patient', (req, res) => {
+app.post('/register-patient', async(req, res) => {
   const userData = req.body;
-
+  const existingPatientEmail= await PatientsModel.findOne({ email: userData.email.toLowerCase() })
+  const existingDoctorEmail=await DoctorsModel.findOne({ email: userData.email.toLowerCase() })
+  const existingAdminEmail=await AdminsModel.findOne({ email: userData.email.toLowerCase() })
+  const existingPatientUsername= await PatientsModel.findOne({ username: userData.username.toLowerCase() })
+  const existingDoctorUsername=await DoctorsModel.findOne({ email: userData.username.toLowerCase() })
+  const existingAdminUsername=await AdminsModel.findOne({ email: userData.username.toLowerCase() })
+  if (existingPatientEmail || existingDoctorEmail || existingAdminEmail || existingPatientUsername||existingDoctorUsername||existingAdminUsername){
+    return res.status(400).json({ message: 'Username/Email Associated With an Existing Account' });
+  }
   // Check if a user with the same username already exists in PatientsModel
   PatientsModel.findOne({ username: userData.username.toLowerCase() })
     .then(existingPatient => {
       if (existingPatient) {
         return res.status(400).json({ message: 'Username already exists' });
       } else {
-        // If the username is unique, create the new patient
-        PatientsModel.create(userData)
-          .then(patient => res.json(patient))
-          .catch(err => res.status(400).json(err));
+        // Check if an account with the same phone number already exists
+        PatientsModel.findOne({ mobileNumber: userData.mobileNumber })
+          .then(existingPatientByPhone => {
+            if (existingPatientByPhone) {
+              return res.status(400).json({ message: 'An account with the same phone number already exists' });
+            } else {
+              // Check if an account with the same email already exists
+              PatientsModel.findOne({ email: userData.email })
+                .then(existingPatientByEmail => {
+                  if (existingPatientByEmail) {
+                    return res.status(400).json({ message: 'An account with the same email already exists' });
+                  } else {
+                    // If the username, phone number, and email are unique, create the new patient
+                    PatientsModel.create(userData)
+                      .then(patient => res.json(patient))
+                      .catch(err => res.status(400).json(err));
+                  }
+                })
+                .catch(err => res.status(500).json(err));
+            }
+          })
+          .catch(err => res.status(500).json(err));
       }
     })
     .catch(err => res.status(500).json(err));
 });
 
-app.post('/register-doctor', (req, res) => {
-  const userData = req.body;
 
+app.post('/register-doctor', async (req, res) => {
+  const userData = req.body;
+  const existingPatientEmail= await PatientsModel.findOne({ email: userData.email.toLowerCase() })
+  const existingDoctorEmail=await DoctorsModel.findOne({ email: userData.email.toLowerCase() })
+  const existingAdminEmail=await AdminsModel.findOne({ email: userData.email.toLowerCase() })
+  const existingPatientUsername= await PatientsModel.findOne({ username: userData.username.toLowerCase() })
+  const existingDoctorUsername=await DoctorsModel.findOne({ email: userData.username.toLowerCase() })
+  const existingAdminUsername=await AdminsModel.findOne({ email: userData.username.toLowerCase() })
+  if (existingPatientEmail || existingDoctorEmail || existingAdminEmail || existingPatientUsername||existingDoctorUsername||existingAdminUsername){
+    return res.status(400).json({ message: 'Email Associated With an Existing Account' });
+  }
   // Check if a user with the same username already exists in DoctorsModel
   DoctorsModel.findOne({ username: userData.username })
     .then(existingDoctor => {
@@ -71,8 +144,111 @@ app.post('/register-doctor', (req, res) => {
     })
     .catch(err => res.status(500).json(err));
 });
+app.post('/upload-id-document/:username', upload.single('idDocument'), (req, res) => {
+  const username = req.params.username;
+  const idDocument = req.file;
+  // Check if a patient with the given username exists in the PatientsModel
+  DoctorsModel.findOne({ username: username })
+    .then(existingPatient => {
+      if (!existingPatient) {
+        return res.status(404).json({ message: 'Patient not found' });
+      }
 
+      // Update the ID document information for the patient
+      existingPatient.idDocument = {
+        fileName: idDocument ? idDocument.filename : '',
+        filePath: idDocument ? idDocument.path : '',
+      };
+      // Save the updated patient information to the database
+      existingPatient.save()
+        .then(updatedPatient => res.json(updatedPatient))
+        .catch(err => res.status(500).json(err));
+    })
+    .catch(err => res.status(500).json(err));
+});
 
+app.post('/upload-medical-licenses/:username', upload.array('medicalLicenses', 5), (req, res) => {
+  const username = req.params.username;
+  const medicalLicenses = req.files;
+  // Check if a doctor with the given username exists in the DoctorsModel
+  DoctorsModel.findOne({ username: username })
+    .then(existingDoctor => {
+      if (!existingDoctor) {
+        return res.status(404).json({ message: 'Doctor not found' });
+      }
+
+      // Process and update the medical licenses for the doctor
+      // You can use the "existingDoctor" to identify the doctor and update their information in the database.
+      const medicalLicensesData = medicalLicenses.map(file => ({
+        fileName: file ? file.filename : '',
+        filePath: file ? file.path : '',
+      }));
+
+      existingDoctor.medicalLicenses = medicalLicensesData;
+
+      // Save the updated doctor information to the database
+      existingDoctor.save()
+        .then(updatedDoctor => res.json(updatedDoctor))
+        .catch(err => res.status(500).json(err));
+    })
+    .catch(err => res.status(500).json(err));
+});
+
+app.post('/upload-medical-degree/:username', upload.single('medicalDegree'), (req, res) => {
+  const username = req.params.username;
+  const medicalDegree = req.file;
+  
+  // Check if a patient with the given username exists in the PatientsModel
+  DoctorsModel.findOne({ username: username })
+    .then(existingPatient => {
+      if (!existingPatient) {
+        return res.status(404).json({ message: 'Patient not found' });
+      }
+
+      // Update the ID document information for the patient
+      existingPatient.medicalDegree = {
+        fileName: medicalDegree ? medicalDegree.filename : '',
+        filePath: medicalDegree ? medicalDegree.path : '',
+      };
+      // Save the updated patient information to the database
+      existingPatient.save()
+        .then(updatedPatient => res.json(updatedPatient))
+        .catch(err => res.status(500).json(err));
+    })
+    .catch(err => res.status(500).json(err));
+});
+app.get('/getType', async (req, res) => {
+  const { username } = req.query;
+  if(username.toLowerCase()=="admin"){
+    return res.json({ userType: 'admin' });
+  }
+  try {
+    // Check in DoctorsModel
+    const doctor = await DoctorsModel.findOne({ username });
+    if (doctor) {
+      return res.json({ userType: 'doctor' });
+    }
+
+    // Check in PatientsModel
+    const patient = await PatientsModel.findOne({ username });
+    if (patient) {
+      
+      return res.json({ userType: 'patient' });
+    }
+
+    // Check in AdminsModel
+    const admin = await AdminsModel.findOne({ username });
+    if (admin) {
+      return res.json({ userType: 'admin' });
+    }
+
+    // If username is not found in any model, return an appropriate response
+    return res.json({ userType: 'not found' });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 app.post('/login-doctor', (req, res) => {
   const { username, password } = req.body;
   
@@ -86,7 +262,10 @@ app.post('/login-doctor', (req, res) => {
           if (user.enrolled === "Pending" || user.enrolled === "Request Not Made") {
             logged.type = "doctornotreg";
             res.status(200).json({ message: "Success But Not Enrolled", enrolledStatus: user.enrolled });
-          } else {
+          } else if(user.enrolled === "PendingContract") {
+            res.status(200).json({ message: "Waiting for contract" });
+          }
+          else{
             res.status(200).json({ message: "Success" });
           }
         } else {
@@ -155,10 +334,16 @@ app.post('/login-doctor', (req, res) => {
   app.post('/add-admin', async (req, res) => {
   try {
     const adminData = req.body;
-
-    const existingAdmin = await AdminsModel.findOne({ username: adminData.username.toLowerCase() });
-
-    if (existingAdmin||(req.body.username.toLowerCase()=="admin")) {
+    const existingPatientEmail= await PatientsModel.findOne({ email: userData.email.toLowerCase() })
+  const existingDoctorEmail=await DoctorsModel.findOne({ email: userData.email.toLowerCase() })
+  const existingAdminEmail=await AdminsModel.findOne({ email: userData.email.toLowerCase() })
+  const existingPatientUsername= await PatientsModel.findOne({ username: userData.username.toLowerCase() })
+  const existingDoctorUsername=await DoctorsModel.findOne({ email: userData.username.toLowerCase() })
+  const existingAdminUsername=await AdminsModel.findOne({ email: userData.username.toLowerCase() })
+  if (existingPatientEmail || existingDoctorEmail || existingAdminEmail || existingPatientUsername||existingDoctorUsername||existingAdminUsername){
+    return res.status(400).json({ message: 'Email Associated With an Existing Account' });
+  }
+    if ((req.body.username.toLowerCase()=="admin")) {
       // If username already exists, return an error response
       return res.json({ message: 'Username already exists' });
     }
@@ -195,7 +380,7 @@ app.post('/approve-doctor/:id', async (req, res) => {
       const doctorId = req.params.id;
   
       // Update the doctor's "enrolled" status to true
-      await DoctorsModel.findByIdAndUpdate(doctorId, { enrolled: "Approved" });
+      await DoctorsModel.findByIdAndUpdate(doctorId, { enrolled: "PendingContract" });
   
       res.json({ message: 'Doctor approved successfully' });
     } catch (error) {
@@ -211,6 +396,25 @@ app.post('/approve-doctor/:id', async (req, res) => {
   
       await DoctorsModel.deleteOne({ _id: doctorId });
   
+      res.json({ message: 'Doctor Rejected Successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  app.post('/accept-contract', async (req, res) => {
+    try {
+      await DoctorsModel.findOneAndUpdate({ username:logged.username }, { enrolled: "Approved" });
+      res.json({ message: 'Doctor approved successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  app.post('/reject-contract', async (req, res) => {
+    try {
+  
+      await DoctorsModel.deleteOne({ username:logged.username });
       res.json({ message: 'Doctor Rejected Successfully' });
     } catch (error) {
       console.error(error);
@@ -285,22 +489,7 @@ app.post('/remove-doctor/:doctorId', async (req, res) => {
   }
 });
 
-//view list of all specfic doctor patients (Req 33)
 app.get('/get-my-patients', async (req, res) => {
-  /*const dataItem={
-    "patient": "652675a1ed54a6df4a66974b", // Replace with the actual patient ID
-    "doctor": "65257dc968db8eab87b0f288",  // Replace with the actual doctor ID
-    "date": "2023-12-15T14:30:00.000Z",  // Replace with the desired date and time
-    "status": "scheduled"
-  };
-  await AppointmentModel.create(dataItem);
-  const ddataItem={
-    "patient": "6525c68c1ff94d12ed88fb0f", // Replace with the actual patient ID
-    "doctor": "65257dc968db8eab87b0f288",  // Replace with the actual doctor ID
-    "date": "2023-12-15T14:30:00.000Z",  // Replace with the desired date and time
-    "status": "scheduled"
-  };
-  await AppointmentModel.create(ddataItem);*/
   try {
     // Find the doctor based on the logged-in username
     const doctor = await DoctorsModel.findOne({ username: logged.username });
@@ -323,6 +512,7 @@ app.get('/get-my-patients', async (req, res) => {
       const patient = patients.find(p => p._id.equals(appointment.patient));
       return {
         info: {
+          _id:patient._id,
           name: patient.name,
           email: patient.email,
           dob:patient.dob,
@@ -331,6 +521,7 @@ app.get('/get-my-patients', async (req, res) => {
           emergencyContactName:patient.emergencyContactName,
           emergencyContactNumber:patient.emergencyContactNumber,
           healthRecords:patient.healthRecords,
+          medicalHistory:patient.medicalHistory,
           date: appointment.date,
         },
       };
@@ -546,7 +737,6 @@ app.get('/get-prescriptions/', async (req, res) => {
         status: status,
       };
     });
-    console.log(updatedPrescriptions);
     res.json(updatedPrescriptions);
   } catch (error) {
     console.error('Error: ', error.message);
@@ -612,15 +802,128 @@ app.get('/select-prescriptions/:prescriptionID', async (req, res) => {
 app.put("/update-family-member",async (req,res)=>{
   const{name, nationalID, age, gender, relation}=req.body;
   try{
-    await PatientsModel.updateOne({username:logged.username},{$push: {familyMembers: {nationalID: nationalID, age:age, name:name, gender:gender, relation, relation}}});
+    await PatientsModel.updateOne({username:logged.username},{$push: {familyMembers: {nationalID: nationalID, age:age, name:name, gender:gender, relation:relation}}});
     res.json({message:"Family Member info added successfully."});
 
   }catch(error){
     console.error(error);
     res.status(500).json({message:"An error occured while updating family members."});
   }});
+  app.put("/add-existing-family-member",async (req,res)=>{
+    const{email, phone, relation}=req.body;
+    const user=await PatientsModel.findOne({username:logged.username});
 
+    if(email==user.email||phone==user.mobileNumber){
+      return res.status(404).json({ message: 'You cannot add your own account!' });
+    }
+    let patient;
+    try{
+      if(email){
+       patient=await PatientsModel.findOne({email:email});
+      }
+      else{
+        patient=await PatientsModel.findOne({mobileNumber:phone});
+      }
+      if(!patient){
+        return res.status(404).json({ message: 'Patient Not found' });
+      }
+      const info={
+        account:patient._id,
+        name:patient.name,
+        nationalID:patient.nationalID,
+        age: (new Date()).getFullYear() - patient.dob.getFullYear(),
+        relation:relation.toLowerCase()
+      }
+      const existingFamilyMember = user.familyMembers.find(member =>
+        member.name === info.name &&
+        member.nationalID === info.nationalID 
+      );
+      
+      if (existingFamilyMember) {
+        // Family member already exists, handle the error
+        res.status(400).json({message:"Family Member Already exists"});
 
+      } else {
+        // Add the family member to the user's familyMembers array
+        user.familyMembers.push(info);
+        user.save();
+        res.status(200).json({message:"Family Member Has Been Added!"});
+      }
+      let relation2;
+      if(relation.toLowerCase()==="husband"){
+        relation2="wife"
+      }
+      if(relation.toLowerCase()==="wife"){
+        relation2="husband"
+      }
+      if(relation2){
+      const info2={
+        account:user._id,
+        name:user.name,
+        nationalID:user.nationalID,
+        age: (new Date()).getFullYear() - user.dob.getFullYear(),
+        relation:relation2.toLowerCase(),
+      }
+
+      patient.familyMembers.push(info2);
+      patient.save();
+    }
+    }catch(error){
+      console.error(error);
+      res.status(500).json({message:"An error occured while updating family members."});
+    }});
+
+  app.get('/get-user-gender', (req, res) => {
+    const userType = logged.type; // Assuming you have the user type in req.logged
+    const username = logged.username; // Assuming you have the username in req.logged
+    let model;
+  
+    if (userType === 'patient') {
+      model = PatientsModel;
+    } else if (userType === 'doctor') {
+      model = DoctorsModel;
+    } else {
+      return res.status(400).json({ message: 'Invalid user type' });
+    }
+  
+    model.findOne({ username: username })
+      .then(user => {
+        if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+        res.json({ gender: user.gender });
+        
+      })
+      .catch(err => {
+        res.status(500).json({ error: err.message });
+      });
+  });
+
+  app.get('/get-wallet-value', (req, res) => {
+    const userType = logged.type; // Assuming you have the user type in req.logged
+    const username = logged.username; // Assuming you have the username in req.logged
+    let model;
+  
+    if (userType === 'patient') {
+      model = PatientsModel;
+    } else if (userType === 'doctor') {
+      model = DoctorsModel;
+    } else {
+      return res.status(400).json({ message: 'Invalid user type' });
+    }
+  
+    model.findOne({ username: username })
+      .then(user => {
+        if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+        res.json({ walletValue: user.wallet });
+        
+      })
+      .catch(err => {
+        res.status(500).json({ error: err.message });
+      });
+  });
   // view family memebers
   app.get('/view-family-members', async (req, res) => {
     try {
@@ -655,6 +958,7 @@ app.get('/doctorsAppointments', async (req, res) => {
 
     // Loop through the appointments and retrieve additional information
     for (const appointment of appointments) {
+      if(appointment.familyMember==null){
       // Find the doctor using the doctor's ID in the appointment
       const patient = await PatientsModel.findOne({ _id: appointment.patient });
 
@@ -665,8 +969,10 @@ app.get('/doctorsAppointments', async (req, res) => {
           date: appointment.date,
           status: appointment.status,
           patientName: patient.name,
+          followedUp:appointment.followedUp
         };
         enhancedAppointments.push(enhancedAppointment);
+      }
       } else {
         // Handle the case where the doctor is not found
         console.error('Doctor not found for appointment ID:', appointment._id);
@@ -680,7 +986,73 @@ app.get('/doctorsAppointments', async (req, res) => {
   }
 });
 
+app.get('/get-family-member-session-price/:familyMemberId/:doctorId', async (req, res) => {
+  try {
+    const familyMemberId = req.params.familyMemberId;
+    const doctorId = req.params.doctorId;
 
+    // Fetch patient details based on the username
+    const patient = await PatientsModel.findOne({ username: logged.username });
+
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    // Fetch family member details based on the ID
+    const familyMember = patient.familyMembers.find((member) => member._id.toString() === familyMemberId);
+
+    if (!familyMember) {
+      return res.status(404).json({ message: 'Family member not found' });
+    }
+
+    // Fetch doctor details based on the ID
+    const doctor = await DoctorsModel.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    let sessionPrice;
+
+    if (!familyMember.subscribedPackage) {
+      // If the family member does not have a subscribed package, use the doctor's hourly rate
+      sessionPrice = doctor.hourlyRate*1.1;
+    } else {
+      // If the family member has a subscribed package, calculate the discounted session price
+      const package = await PackagesModel.findById(familyMember.subscribedPackage);
+
+      if (!package) {
+        return res.status(404).json({ message: 'Package not found' });
+      }
+
+      const discount = package.doctorSessionDiscount || 0; // Assuming doctorSessionDiscount is an attribute of the package
+      sessionPrice = doctor.hourlyRate*1.1- doctor.hourlyRate* (discount/100);
+    }
+
+    res.status(200).json( sessionPrice );
+  } catch (error) {
+    console.error('Error fetching family member session price:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+app.post('/upload-health-record', upload.single('recordFile'), async (req, res) => {
+  try {
+    const patientId = req.body.patientId;
+    const filePath = req.file.path;
+
+    // Update the patient's healthRecords array with the new file path
+    const patient = await PatientsModel.findByIdAndUpdate(
+      patientId,
+      { $push: { healthRecords: filePath } },
+      { new: true }
+    );
+
+    res.json({ success: true, message: 'Health record uploaded successfully', patient });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
 // filter appointments by date/status for patient
 app.get('/patientsAppointments', async (req, res) => {
   try {
@@ -751,29 +1123,7 @@ app.get('/doctors/:doctorId/patients-info', async (req, res) => {
 app.get('/get-doctors-session-price/', async (req, res) => {
   try {
     const doctors = await DoctorsModel.find({enrolled:'Approved'});
-    /*for (const doctor of doctors) {
-      const numberOfSlots = 5;
-      const randomSlots = [];
-      for (let i = 0; i < numberOfSlots; i++) {
-        const today = new Date();
-        const randomDate = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate() + Math.floor(Math.random() * 30), // Random day of the month
-          8 + Math.floor(Math.random() * 4), // Random hour (8-11)
-          Math.floor(Math.random() * 60) // Random minute (0-59)
-        );
-        randomSlots.push(randomDate.toISOString()); // Convert to ISO 8601 string
-      }
-    
-      // Update the doctor's availableSlots field with the randomSlots array
-      doctor.availableSlots = randomSlots.map((slot) => new Date(slot));
-    
-      // Save the updated doctor document
-      await doctor.save();
-    }*/
-    
-    
+
     const patient = await PatientsModel.findOne({ username: logged.username });
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
@@ -795,6 +1145,36 @@ app.get('/get-doctors-session-price/', async (req, res) => {
   } catch (error) {
     console.error('Error: ', error.message);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/wallet-payment', async (req, res) => {
+  try {
+      const { totalPaymentDue } = req.body;
+
+      // Find the patient by username
+      const patient = await PatientsModel.findOne({ username: logged.username});
+
+      if (!patient) {
+          return res.status(404).json({ success: false, message: 'Patient not found.' });
+      }
+
+      // Check if the patient has enough money in the wallet
+      if (patient.wallet < totalPaymentDue) {
+          return res.status(400).json({ success: false, message: 'Insufficient funds in the wallet.' });
+      }
+
+      // Deduct the amount from the patient's wallet
+      patient.wallet -= totalPaymentDue;
+
+      // Save the updated patient
+      await patient.save();
+
+      // Return success response
+      res.json({ success: true, message: 'Wallet payment successful.' });
+  } catch (error) {
+      console.error('Error processing wallet payment:', error);
+      res.status(500).json({ success: false, message: 'Internal server error.' });
   }
 });
 
@@ -823,15 +1203,22 @@ app.post('/subscribe', async (req, res) => {
 
     const members = user.familyMembers;
 
-    familyMembers.forEach((member) => {
-      members.forEach((patientMem) => {
-        if (patientMem.name === member) {
-          patientMem.subscribedPackage = packageId;
-          patientMem.subscriptionDate=new Date();
-          patientMem.canceled=null;
-        }
+    familyMembers.forEach(async (member) => {
+      members.forEach(async (patientMem) => {
+          if (patientMem.name === member) {
+              if (patientMem.account) {
+                  await PatientsModel.findOneAndUpdate(
+                      { _id: patientMem.account },
+                      { subscribedPackage: packageId, subscriptionDate: new Date(), canceled: null }
+                  );
+              }
+              patientMem.subscribedPackage = packageId;
+              patientMem.subscriptionDate = new Date();
+              patientMem.canceled = null;
+          }
       });
-    });
+  });
+  
     const fam = await PatientsModel.findOneAndUpdate(
       { username: logged.username },
       { familyMembers: members }
@@ -851,6 +1238,7 @@ app.get('/get-my-package', async (req, res) => {
   const result=new Object();
   
   const user=await PatientsModel.findOne({username:logged.username});
+  if(user){
   const package=await PackagesModel.findOne({_id:user.subscribedPackage});
 
   result.package=package;
@@ -858,6 +1246,7 @@ app.get('/get-my-package', async (req, res) => {
   result.canceled=user.canceled;
 
   res.json(result);
+  }
 });
 app.post('/cancel-subscription', async (req, res) => {
   await PatientsModel.findOneAndUpdate({username:logged.username},{canceled:new Date()})
@@ -870,7 +1259,6 @@ app.get('/get-family-member-package/:id', async (req, res) => {
       const package = await PackagesModel.findOne({ _id: memberId });
       if (package) {
           res.json(package);
-          console.log(package);
       } else {
           res.status(404).json({ error: 'Family member not found' });
       }
@@ -900,7 +1288,6 @@ app.get('/get-family-member-package-status/:id', async (req, res) => {
 app.post('/cancel-family-subscription/:id', async (req, res) => {
   try {
       const memberId = req.params.id;
-    console.log(memberId);
       // Query the PatientsModel to find the family member's package
       const patient = await PatientsModel.findOne({ username: logged.username });
       const familyMember = patient.familyMembers.find((member) => member._id.equals(memberId));
@@ -930,367 +1317,392 @@ app.post('/logout', (req, res) => {
   res.status(200).json({ message: 'logged out successfully' });
 });
 
-
-app.put('/change-password', async (req, res) => {
-  const { username, password, newPassword,confirmNewPassword } = req.body;
-  
+app.post('/doctors/add-appointments', async (req, res) => {
+  const { appointments } = req.body;
 
   try {
-    let user="";
-    console.log(logged.type);
+    // Find the doctor by username
+    const doctor = await DoctorsModel.findOne({ username:logged.username });
 
-    if(logged.type === "patient")
-    {
-       user = await PatientsModel.findOne({  username: logged.username.toLowerCase()  });
-    }
-    else if(logged.type === "admin")
-    {
-       user = await AdminsModel.findOne({  username: logged.username.toLowerCase()  });
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
     }
 
-    else if(logged.type === 'doctor')
-    {
-       user = await DoctorsModel.findOne({  username: logged.username.toLowerCase()  });
+    // Add the appointments to the doctor's appointment list
+    doctor.availableSlots.push(...appointments);
+
+    // Save the updated doctor object
+    await doctor.save();
+
+    res.status(200).json({ message: 'Appointments added successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+app.post('/reserve-family-member', async (req, res) => {
+  const { doctorId, dateTime , familyMemberId} = req.body;
+
+  try {
+    // Retrieve patient ID based on username
+    const patient = await PatientsModel.findOne({ username: logged.username });
+
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
     }
-    else{
-      return res.status(400).json({ message: 'Invalid user type' });
+    const ObjectId = mongoose.Types.ObjectId;
+    const familyMember = patient.familyMembers.find(member => member._id.toString() === new ObjectId(familyMemberId).toString());
+    if (!familyMember) {
+      return res.status(404).json({ message: 'familyMember not found' });
+    }
+    const data={
+      account: familyMember.account,
+      name: familyMember.name,
+      nationalID: familyMember.nationalID,
+      age: familyMember.age,
+      gender: familyMember.gender,
+      relation: familyMember.relation,
+    };
+    if(familyMember.account){
+      const tempAppoitnment = new AppointmentsModel({
+        doctor: doctorId,
+        patient: familyMember.account, // Assign the patient's ID
+        date: dateTime
+      });
+      tempAppoitnment.save();
+    }
+    // Create a new appointment in AppointmentsModel
+    const newAppointment = new AppointmentsModel({
+      doctor: doctorId,
+      patient: patient._id, // Assign the patient's ID
+      date: dateTime,
+      familyMember: data
+    });
+
+    // Remove the reserved dateTime from the doctor's availableSlots
+    const doctor = await DoctorsModel.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+    await DoctorsModel.updateOne(
+      { _id: doctorId },
+      { $pull: { availableSlots: dateTime } }
+    );
+
+    await newAppointment.save();
+    await doctor.save();
+
+    res.status(200).json({ message: 'Appointment reserved successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to reserve appointment' });
+  }
+});
+app.post('/reserve', async (req, res) => {
+  const { doctorId, dateTime } = req.body;
+  const patientUsername = logged.username; // Assuming you have authentication middleware
+
+  try {
+    // Retrieve patient ID based on username
+    const patient = await PatientsModel.findOne({ username: patientUsername });
+
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    // Create a new appointment in AppointmentsModel
+    const newAppointment = new AppointmentsModel({
+      doctor: doctorId,
+      patient: patient._id, // Assign the patient's ID
+      date: dateTime,
+    });
+
+    // Remove the reserved dateTime from the doctor's availableSlots
+    const doctor = await DoctorsModel.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+    await DoctorsModel.updateOne(
+      { _id: doctorId },
+      { $pull: { availableSlots: dateTime } }
+    );
+
+    await newAppointment.save();
+    await doctor.save();
+
+    res.status(200).json({ message: 'Appointment reserved successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to reserve appointment' });
+  }
+});
+app.post('/change-password', async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const userType = logged.type; // Assuming you have a middleware to get user type
+
+  try {
+    let user;
+
+    // Check the user's type and access the appropriate model
+    if (userType === 'admin') {
+      user = await AdminsModel.findOne({ username: logged.username });
+    } else if (userType === 'patient') {
+      user = await PatientsModel.findOne({ username: logged.username });
+    } else if (userType === 'doctor') {
+      user = await DoctorsModel.findOne({ username: logged.username });
     }
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    else if (user.password !== password) {
+    if (currentPassword !== user.password) {
       return res.status(400).json({ message: 'Current password is incorrect' });
     }
-    else if (newPassword !== confirmNewPassword) {
-      return res.status(500).json({ error: "Password confirmation doesn't match entered password" });
-      
-    }
-    else if(
-        newPassword.length < 8 ||  !/[A-Z]/.test(newPassword) || !/\d/.test(newPassword) || /\s/.test(newPassword)  ) 
-        {
-          return res.status(400).json({
-            message: 'New password does not meet the required criteria.',
-          });
-        }
-    else{
-      user.password = newPassword;
-       await user.save();
-       res.status(200).json({ message: 'Password changed successfully' });
-    }
-    
+    // Update the user's password
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({ message: 'Password changed successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-//upload/remove documents (PDF,JPEG,JPG,PNG) for my medical history (Req 2)
-const fs = require('fs');
-const path = require('path');
-
-app.put('/upload-document', async (req, res) => {
-  const { document } = req.body;
-  const { type, data, filename } = document;
-  const allowedTypes = ['pdf', 'jpeg', 'jpg', 'png'];
-  const extension = filename.split('.').pop().toLowerCase();
-
-  if (!allowedTypes.includes(extension)) {
-    return res.status(400).send('Invalid file type');
-  }
-
-  const filePath = path.join(__dirname, 'medical-history', `${filename}`);
-  const fileExists = fs.existsSync(filePath);
-
-  if (type === 'add') {
-    if (fileExists) {
-      return res.status(400).send('File already exists');
-    }
-
-    fs.writeFileSync(filePath, data, 'base64');
-    return res.status(200).send('File uploaded successfully');
-  } else if (type === 'remove') {
-    if (!fileExists) {
-      return res.status(400).send('File does not exist');
-    }
-
-    fs.unlinkSync(filePath);
-    return res.status(200).send('File removed successfully');
-  } else {
-    return res.status(400).send('Invalid request type');
-  }
-});
-//upload and submit required documents upon registrationas a doctor such as ID, Medical licenses and medical degree 
-app.put('/upload-document', async (req, res) => {
-  const { document } = req.body;
-// Upload and submit required documents upon registration as a doctor such as ID, Medical licenses and medical degree
-app.put('/upload-doctor-documents', async (req, res) => {
-  const { document } = req.body;
-  const { type, data, filename } = document;
-  const allowedTypes = ['pdf', 'jpeg', 'jpg', 'png'];
-  const extension = filename.split('.').pop().toLowerCase();
-
-  if (!allowedTypes.includes(extension)) {
-    return res.status(400).send('Invalid file type');
-  }
-
-  const filePath = path.join(__dirname, 'medical-history', `${filename}`);
-  const fileExists = fs.existsSync(filePath);
-
-  if (type === 'add') {
-    if (fileExists) {
-      return res.status(400).send('File already exists');
-    }
-
-    fs.writeFileSync(filePath, data, 'base64');
-    return res.status(200).send('File uploaded successfully');
-  } else if (type === 'remove') {
-    if (!fileExists) {
-      return res.status(400).send('File does not exist');
-    }
-
-    fs.unlinkSync(filePath);
-    return res.status(200).send('File removed successfully');
-  } else {
-    return res.status(400).send('Invalid request type');
-  }
-});
-//request the employment contract
-app.post('/employment-contract', async (req, res) => {
-  // code to retrieve employment contract from database or file system
-  const employmentContract = "This is the employment contract text.";
-
-  res.status(200).send(employmentContract);
-});
-
-app.post('/accept-employment-contract', async (req, res) => {
-  // code to update user's employment contract acceptance status in database
-  const userId = req.body.userId;
-  const accepted = req.body.accepted;
-
-  // code to update user's employment contract acceptance status in database
-  res.status(200).send(`Employment contract acceptance status updated for user ${userId}.`);
-});
-  const userId = req.body.userId;
-  const accepted = req.body.accepted;
-
-  // code to update user's employment contract acceptance status in database
-  res.status(200).send(`Employment contract acceptance status updated for user ${userId}.`);
-});
-
-
-// Define a route to allow a doctor to add a new health record for a patient
-app.post('/add-health-record/:patientId', async (req, res) => {
-  try {
-    const patientId = req.params.patientId; 
-    const { healthRecord } = req.body; 
-
-    // Check if healthRecord is provided
-    if (!healthRecord) {
-      return res.status(400).json({ error: 'A healthRecord is required.' });
-    }
-
-
-    // Find the patient by patientId
-    const patient = await PatientsModel.findById(patientId);
-
-    if (!patient) {
-      return res.status(404).json({ error: 'Patient not found.' });
-    }
-
-    // Add the new health record to the patient's healthRecords array
-    patient.healthRecords.push(healthRecord);
-
-    // Save the updated patient document to the database
-    await patient.save();
-
-    return res.status(201).json(patient);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ message: 'Failed to change password' });
   }
 });
 
-// server-side route to view uploaded health records 	Patient can only see their own records. Doctor can only see the records of patients who have had at least one appointment with them.
-app.get('/get-health-records/:patientId', async (req, res) => {
-  try {
-    const patientId = req.params.patientId; 
+const otpStorage = {};
 
-    // Check if patientId is provided
-    if (!patientId) {
-      return res.status(400).json({ error: 'A patientId is required.' });
-    }
-
-    // Find the patient by patientId
-    const patient = await PatientsModel.findById(patientId);
-
-    if (!patient) {
-      return res.status(404).json({ error: 'Patient not found.' });
-    }
-
-    // Check if the logged in user is the patient or a doctor
-    if (logged.type === 'patient') {
-      // If the logged in user is the patient, return the patient's health records
-      return res.status(200).json(patient.healthRecords);
-    } else if (logged.type === 'doctor') {
-      // If the logged in user is a doctor, check if the patient has had an appointment with the doctor
-      const doctor = await DoctorsModel.findOne({ username: logged.username });
-      const appointment = await AppointmentModel.findOne({ doctor: doctor._id, patient: patient._id });
-
-      if (!appointment) {
-        return res.status(403).json({ error: 'You are not authorized to view this patient\'s health records.' });
-      }
-
-      // If the patient has had an appointment with the doctor, return the patient's health records
-      return res.status(200).json(patient.healthRecords);
-    } else {
-      // If the logged in user is neither a patient nor a doctor, return an error
-      return res.status(403).json({ error: 'You are not authorized to view this patient\'s health records.' });
-    }
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-}
-);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-// patient payment choice for appointments (req 20 & 21)
-
-
-async function processCreditCardPayment(amount) {
-  try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      currency: "EGP",
-      mode: "payment",
-      amount: amount,
-      automatic_payment_methods: { enabled: true },
-    });
-    return { clientSecret: paymentIntent.client_secret };
-   
-  } catch (e) {
-    return res.status(400).send({
-      error: {
-        message: e.message,
-      },
-    });
-  }
+// Generate a random 6-digit OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000);
 };
 
+app.post('/send-otp', async (req, res) => {
+  const { username } = req.body;
+  let email;
+  let userType;
+  let userModel;
+  if (username) {
+    const patient = await PatientsModel.findOne({ username });
+    if (patient) {
+      email = patient.email;
+      userType = 'patient';
+      userModel = PatientsModel;
+    } else {
+      const admin = await AdminsModel.findOne({ username });
+      if (admin) {
+        email = admin.email;
+        userType = 'admin';
+        userModel = AdminsModel;
+      } else {
+        const doctor = await DoctorsModel.findOne({ username });
+        if (doctor) {
+          email = doctor.email;
+          userType = 'doctor';
+          userModel = DoctorsModel;
+        }
+      }
+    }
+  }
 
-app.post('/process-payment', async (req, res) => {
+  if (!email) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  // Generate an OTP and store it
+  const otp = generateOTP();
+  otpStorage[username] = otp;
+  sendOTPByEmail(email, otp);
+  // Send the OTP to the user's email (you'll need to implement this)
+  // For this example, we're just sending it back as a response
+  res.status(200).json({ otp });
+});
+
+// Endpoint to verify OTP
+app.post('/verify-otp', (req, res) => {
+  const { username, otp } = req.body;
+  // Get the stored OTP
+  const storedOTP = otpStorage[username];
+
+  if (!storedOTP.toString() || storedOTP.toString() !== otp) {
+    res.status(400).json({ message: 'Invalid OTP' });
+  } else {
+    res.status(200).json({ message: 'OTP verified successfully' });
+  }
+});
+
+// Endpoint to reset the password
+app.post('/reset-password', async (req, res) => {
+  const { username, newPassword } = req.body;
+  if (username) {
+    const patient = await PatientsModel.findOne({ username });
+    if (patient) {
+       await PatientsModel.findOneAndUpdate({ username}, {password:newPassword });
+    } else {
+      const admin = await AdminsModel.findOne({ username });
+      if (admin) {
+        await AdminsModel.findOneAndUpdate({ username}, {password:newPassword });
+      } else {
+        const doctor = await DoctorsModel.findOne({ username });
+        if (doctor) {
+          await DoctorsModel.findOneAndUpdate({ username}, {password:newPassword });
+        }
+      }
+    }
+  }
+  res.status(200).json({ message: 'Password reset successfully' });
+});
+
+app.get('/medicalRecords', async (req, res) => {
   try {
-    const { paymentMethod, amount, appointmentId } = req.body;
     const patient = await PatientsModel.findOne({ username: logged.username });
-    const appointment = await AppointmentModel.findById(appointmentId);
-    
-    if (paymentMethod === 'wallet') {
-             try {
-              if (!patient || !appointment ) {
-                return res.status(400).json({ error: 'Invalid patient or appointment ' });
-              }
-         else if (appointment.paid == true)
-          {
-            return res.status(400).json({ error: 'appointment is already paid ' });
-          }
-          
-             else if (patient.walletBalance < appointment.appointmentFee) {
-                return res.status(400).json({ error: 'Insufficient funds in the wallet' });
-              }
-          
-              patient.walletBalance -= amount;
-              await patient.save();
-              appointment.paid = true;
-              await appointment.save();
-              res.json({ message: 'Payment successful using wallet' });
-            } catch (error) {
-            
-              res.status(500).json({ error: 'An error occurred while processing wallet payment' });
-            }
+    if (!patient) {
+      res.status(404).json({ error: 'Patient not found' });
+    } else {
+      res.status(200).json(patient.medicalHistory);
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' });
+  }
+});
 
-          }
-          else if (paymentMethod === 'creditCard') {
-                  try {
+app.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    const filePath = req.file.path;
+    const fileName = req.file.originalname; 
+    const patient = await PatientsModel.findOne({ username: logged.username });
 
-                    if (!patient || !appointment ) {
-                      return res.status(400).json({ error: 'Invalid patient or appointment ' });
-                    }
-               else if (appointment.paid == true)
-                   {
-                  return res.status(400).json({ error: 'appointment is already paid ' });
-                  }
-                    else{
-                          const paymentResult = await processCreditCardPayment(amount);
-                          res.json(paymentResult);
-                          appointment.paid = true;
-                          await appointment.save();
-                        }
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
 
-                        } catch (e) {
-                          return res.status(400).send({
-                            error: {
-                              message: e.message,
-                            },
-                          });
-                        }       }     
-              } catch (error) {
-                // Handle errors, log them, and return an error response
-                res.status(500).json({ error: 'An error occurred while processing payment' });
-              }
-            });
+    // Check if the patient has the medicalRecords array; if not, create it.
+    if (!patient.medicalHistory) {
+      patient.medicalHistory = [];
+    }
 
+    patient.medicalHistory.push({ fileName,filePath });
+    await patient.save();
+    res.status(200).json({ message: 'File uploaded successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+app.get('/get-health-records/', async (req, res) => {
+  try {
+    // Fetch health records for the specific patient
+    const patient = await PatientsModel.findOne({username:logged.username});
 
+    if (!patient) {
+      return res.status(404).json({ success: false, message: 'Patient not found' });
+    }
 
+    res.json(patient.healthRecords);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+app.get('/uploads/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, 'uploads', filename); // Adjust the directory as needed
 
-
-    // patient view my wallet
-    app.get('/wallet-balance/:username', async (req, res) => {
-      try{
-       const username = req.params.username;
-        const patient = await PatientsModel.findOne({ username: logged.username });
-    
-      if (patient) {
-        res.json({ walletBalance: patient.walletBalance });
-      } else {
-        res.status(404).json({ error: 'Patient not found' });
+  if (fs.existsSync(filePath)) {
+    res.download(filePath, filename, (err) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Internal Server Error');
       }
+    });
+  } else {
+    res.status(404).send('File not found');
+  }
+});
+
+app.delete('/delete/:recordId', async (req, res) => {
+  try {
+    const { recordId } = req.params;
+    const patient = await PatientsModel.findOne({ username: logged.username }).exec();
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found' });
     }
-    catch (err) {
-      console.log(err);
+
+    // Find the index of the record with the specified recordId
+    const recordIndex = patient.medicalHistory.findIndex((record) => record._id.toString() === recordId);
+
+    if (recordIndex === -1) {
+      return res.status(404).json({ error: 'Medical record not found' });
     }
+
+    // Remove the record at the specified index
+    patient.medicalHistory.splice(recordIndex, 1);
+
+    await patient.save();
+    res.status(200).json({ message: 'File deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Endpoint for scheduling a follow-up
+app.post('/schedule-follow-up', async (req, res) => {
+
+  try {
+    const { originalAppointmentId, followUpDateTime } = req.body;
+    // Find the original appointment
+    const originalAppointment = await AppointmentsModel.findById(originalAppointmentId);
+
+    if (!originalAppointment) {
+      return res.status(404).json({ message: 'Original appointment not found' });
+    }
+
+    // Create a new follow-up appointment
+    const followUpAppointment = new AppointmentsModel({
+      date: new Date(followUpDateTime),
+      patient: originalAppointment.patient,
+      doctor: originalAppointment.doctor,
+      familyMember:originalAppointment.familyMember,
+      type: "followup"
     });
 
+    // Save the follow-up appointment to the database
+    await followUpAppointment.save();
 
-// doctor view my wallet
-    app.get('/doc-wallet-balance/:username', async (req, res) => {
-      try{
-        const username = req.params.username;
-        const doctor = await DoctorsModel.findOne({ username: logged.username });
-    
-      if (doctor) {
-        res.json({ walletBalance: doctor.walletBalance });
-      } else {
-        res.status(404).json({ error: 'doc not found' });
+    return res.status(200).json({ message: 'Follow-up appointment scheduled successfully', followUpAppointment });
+  } catch (error) {
+    console.error('Error scheduling follow-up:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/get-family-discount', async (req, res) => {
+  try {
+      const patient = await PatientsModel.findOne({username:logged.username});
+
+      if (!patient) {
+          return res.status(404).json({ error: 'Patient not found' });
       }
-    }
-    catch (err) {
-      console.log(err);
-    }
-    });
-   
 
-  
-    
+      if (patient.subscribedPackage) {
+          const package = await PackagesModel.findById(patient.subscribedPackage);
+          if (package) {
+              // Fetch the family discount attribute from the package
+              const familyMemberDiscount = package.familyMemberDiscount /100|| 0;
 
+              // Return the family discount attribute
+              return res.json({ familyMemberDiscount });
+          }
+      }
 
-  app.listen(3001,'localhost')
+      // If the patient does not have a subscribed package or the package does not exist
+      // Return 0 as the family discount
+      return res.json({ familyMemberDiscount: 0 });
+  } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.listen(3001,'localhost')

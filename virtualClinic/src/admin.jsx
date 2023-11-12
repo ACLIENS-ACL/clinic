@@ -110,6 +110,20 @@ function AdminDashboard() {
               </MDBCardBody>
             </MDBCard>
           </MDBCol>
+
+          <MDBCol md="4" className="mb-4">
+          <MDBCard>
+            <MDBCardBody>
+              <MDBCardTitle>Change Password</MDBCardTitle>
+              <MDBCardText>
+                Change Your Password
+              </MDBCardText>
+              <Link to="/changePassword">
+                <MDBBtn color="info">Change Password</MDBBtn>
+              </Link>
+            </MDBCardBody>
+          </MDBCard>
+        </MDBCol>
         </MDBRow>
       </MDBContainer>
     </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import Navbar from './navbar';
 
 const AddPrescription = () => {
   const [prescriptionData, setPrescriptionData] = useState({
@@ -33,6 +34,7 @@ const AddPrescription = () => {
 
   return (
     <div>
+      <Nabar/>
       <h2>Add Prescription</h2>
       <div className="form-group">
         <label>Patient ID:</label>
