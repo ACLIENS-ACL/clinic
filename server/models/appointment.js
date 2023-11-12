@@ -43,11 +43,6 @@ const AppointmentSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  paid: {
-    type: Boolean,
-    default: false,
-  }
-
 });
 
 // Update the virtual field for 'status' to check 'cancelled' attribute
