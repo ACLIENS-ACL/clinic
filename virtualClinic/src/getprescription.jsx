@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import axios from 'axios';
+import Navbar from './navbar';
 
 const PatientPrescriptions = () => {
   const [patientID, setPatientID] = useState('');
@@ -23,6 +24,7 @@ const PatientPrescriptions = () => {
 
   return (
     <div>
+      <Navbar/>
       <h2>Get Prescriptions by Patient ID</h2>
       <input
         type="text"

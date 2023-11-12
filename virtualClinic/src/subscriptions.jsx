@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
+import Navbar from './navbar';
 
 function AdminDashboard() {
+    const navigate = useNavigate();
     useEffect(() => {
         // Fetch admin data from the server
         axios.get(`http://localhost:3001/get-user-type`).then((response) => {
@@ -14,7 +15,6 @@ function AdminDashboard() {
             }
         });
     }, []);
-
     const [userData, setUserData] = useState(null);
     const [selectedFamilyMember, setSelectedFamilyMember] = useState(null);
     const [selectedFamilyMemberDate, setSelectedFamilyMemberDate] = useState(null);
@@ -22,6 +22,8 @@ function AdminDashboard() {
     const [selectedFamilyMemberPackage, setSelectedFamilyMemberPackage] = useState(null);
     const [familyMembers, setFamilyMembers] = useState([]);
     const [familyMemberPackage, setFamilyMemberPackage] = useState(null);
+
+
     useEffect(() => {
         // Fetch admin data from the server
         axios.get(`http://localhost:3001/get-my-package`).then((response) => {
@@ -34,13 +36,15 @@ function AdminDashboard() {
             setFamilyMembers(response.data);
         });
     });
+
+
     const handleCancelSubscription = () => {
         axios.post('http://localhost:3001/cancel-subscription')
     }
     const handleFamilyCancelSubscription = async () => {
         await axios.post(`http://localhost:3001/cancel-family-subscription/${selectedFamilyMember}`);
         fetchFamilyMemberSubscription(selectedFamilyMember);
-    }    
+    }
     const handleFamilyMemberSelect = (selectedOption) => {
         if (selectedOption) {
             // Parse the JSON string back into an object
@@ -81,6 +85,7 @@ function AdminDashboard() {
     }, [selectedFamilyMemberPackage]);
     return (
         <div>
+            <Navbar />
             <div>
                 <h2>Subscribed Package and Details</h2>
                 {userData && userData.package && (

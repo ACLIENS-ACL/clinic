@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
 
 const containerStyle = {
   fontFamily: 'Arial, sans-serif',
@@ -103,6 +104,7 @@ function AppointmentsList() {
 
   return (
     <div style={containerStyle}>
+      <Navbar/>
       <h2 style={headerStyle}>Appointments</h2>
 
       <div style={filterContainerStyle}>

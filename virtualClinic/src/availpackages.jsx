@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
+import Navbar from './navbar';
 function AdminDashboard() {
     const [packages, setPackages] = useState([]);
     const [familyMembers, setFamilyMembers] = useState([]);
     const [selectedOptions, setSelectedOptions] = useState({});
     const [showDropdowns, setShowDropdowns] = useState({});
+    const [discount, setDiscount] = useState(0);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -36,6 +37,17 @@ function AdminDashboard() {
         axios.get('http://localhost:3001/view-family-members')
             .then((response) => {
                 setFamilyMembers(response.data);
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+    }, []);
+
+    useEffect(() => {
+        // Make an Axios call to your backend API to fetch the family members.
+        axios.get('http://localhost:3001/get-family-discount')
+            .then((response) => {
+                setDiscount(response.data.familyMemberDiscount);
             })
             .catch((error) => {
                 console.error(error);
@@ -143,25 +155,6 @@ function AdminDashboard() {
         });
     };
 
-    const handleSubscribeClickToServer = (packageId, self) => {
-        const selectedFamilyMembers = selectedOptions[packageId]?.familyMembers || [];
-        const data = {
-            self: (self) ? true : false,
-            packageId,
-            familyMembers: selectedFamilyMembers,
-        };
-
-        // Make an HTTP POST request to the server
-        axios.post('http://localhost:3001/subscribe', data)
-            .then((response) => {
-                // Handle the server response, e.g., redirect to a success page
-            })
-            .catch((error) => {
-                // Handle the error, e.g., show an error message
-                console.error(error);
-            });
-    };
-
     const calculateTotalCost = (availPackage) => {
         const baseCost = availPackage.cost;
         let totalCost = 0;
@@ -177,13 +170,24 @@ function AdminDashboard() {
         }
         else if (selectedOptions[availPackage._id]?.family) {
             const numberOfFamilyMembers = (selectedOptions[availPackage._id]?.familyMembers || []).length;
-            totalCost += numberOfFamilyMembers * (baseCost);
+            totalCost += numberOfFamilyMembers * (baseCost)*(1-discount);
         }
 
         return totalCost.toFixed(2); // Round to 2 decimal places
     };
+    const NavigateToPay = (totalPaymentDue, type, packageId, self) => {
+        if (!self) {
+            self = false;
+        }
+        const selectedFamilyMembers = selectedOptions[packageId]?.familyMembers || [];
+        const familyMembersString = selectedFamilyMembers.join(',') || "none";
+        const navigationPath = `/pay/${totalPaymentDue}/${type}/${packageId}/${self}/${familyMembersString}`;
+        navigate(navigationPath);
+    };
+
     return (
         <div>
+            <Navbar />
             <h2 style={headingStyle}>List of Available Packages</h2>
             <ul>
                 {packages.map((availPackage) => (
@@ -241,14 +245,7 @@ function AdminDashboard() {
                                         ))}
                                     </select>
                                 )}
-                                <br />
-                                <input type="radio" id="wallet" name="payment" value="wallet" />
-                                <label htmlFor="wallet">Pay with Wallet</label>
-                                <br />
-                                <input type="radio" id="creditCard" name="payment" value="creditCard" />
-                                <label htmlFor="creditCard">Pay with Credit Card</label>
-                                <br />
-                                <button onClick={handleSubscribeClickToServer(availPackage._id, selectedOptions[availPackage._id]?.self)}>Subscribe</button>
+                                <button onClick={() => NavigateToPay(calculateTotalCost(availPackage), "packagePayment", availPackage._id, selectedOptions[availPackage._id]?.self)}>Pay & Subscribe</button>
                             </div>
                         )}
                     </li>

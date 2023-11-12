@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
 
 function PrescriptionList() {
   const navigate = useNavigate();
@@ -154,6 +155,7 @@ function PrescriptionList() {
 
   return (
     <div style={containerStyle}>
+      <Navbar/>
       <h1 style={headingStyle}>Prescriptions</h1>
       <div>
         <label htmlFor="filter">Filter by status:</label>
