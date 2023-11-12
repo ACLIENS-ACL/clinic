@@ -11,11 +11,12 @@ const PrescriptionModel=require('./models/prescriptions');
 const AppointmentModel = require('./models/appointment');
 const MongoURI = process.env.MONGO_URI;
 const app = express();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 
 app.use(express.json());
 // Enable CORS with credentials option
 app.use(cors({ credentials: true, origin: true }));
-
 
 
 var logged = {
@@ -1167,72 +1168,89 @@ app.get('/get-health-records/:patientId', async (req, res) => {
 // patient payment choice for appointments (req 20 & 21)
 
 
+async function processCreditCardPayment(amount) {
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      currency: "EGP",
+      mode: "payment",
+      amount: amount,
+      automatic_payment_methods: { enabled: true },
+    });
+    return { clientSecret: paymentIntent.client_secret };
+   
+  } catch (e) {
+    return res.status(400).send({
+      error: {
+        message: e.message,
+      },
+    });
+  }
+};
 
-// app.post('/process-payment', async (req, res) => {
-//   try {
-//     const { paymentMethod, amount, appointmentId } = req.body;
-//     const patient = await PatientsModel.findOne({ username: logged.username });
-//     const appointment = await AppointmentModel.findById(appointmentId);
+
+app.post('/process-payment', async (req, res) => {
+  try {
+    const { paymentMethod, amount, appointmentId } = req.body;
+    const patient = await PatientsModel.findOne({ username: logged.username });
+    const appointment = await AppointmentModel.findById(appointmentId);
     
-//     if (paymentMethod === 'wallet') {
-//              try {
-//               if (!patient || !appointment ) {
-//                 return res.status(400).json({ error: 'Invalid patient or appointment ' });
-//               }
-//           if (appointment.paid == true)
-//           {
-//             return res.status(400).json({ error: 'appointment is already paid ' });
-//           }
+    if (paymentMethod === 'wallet') {
+             try {
+              if (!patient || !appointment ) {
+                return res.status(400).json({ error: 'Invalid patient or appointment ' });
+              }
+         else if (appointment.paid == true)
+          {
+            return res.status(400).json({ error: 'appointment is already paid ' });
+          }
           
-//               if (patient.walletBalance < appointment.appointmentFee) {
-//                 return res.status(400).json({ error: 'Insufficient funds in the wallet' });
-//               }
+             else if (patient.walletBalance < appointment.appointmentFee) {
+                return res.status(400).json({ error: 'Insufficient funds in the wallet' });
+              }
           
-//               patient.walletBalance -= appointment.appointmentFee;
-//               await patient.save();
-//               appointment.paid = true;
-//               await appointment.save();
-//               res.json({ message: 'Payment successful using wallet' });
-//             } catch (error) {
+              patient.walletBalance -= amount;
+              await patient.save();
+              appointment.paid = true;
+              await appointment.save();
+              res.json({ message: 'Payment successful using wallet' });
+            } catch (error) {
             
-//               res.status(500).json({ error: 'An error occurred while processing wallet payment' });
-//             }
+              res.status(500).json({ error: 'An error occurred while processing wallet payment' });
+            }
 
-//           }
-//           else if (paymentMethod === 'creditCard') {
-//                   try {
+          }
+          else if (paymentMethod === 'creditCard') {
+                  try {
 
-//                     if (!patient || !appointment ) {
-//                       return res.status(400).json({ error: 'Invalid patient or appointment ' });
-//                     }
-//                else if (appointment.paid == true)
-//                    {
-//                   return res.status(400).json({ error: 'appointment is already paid ' });
-//                   }
-//                     else{
-//                           const paymentIntent = await stripe.paymentIntents.create({
-//                             currency: "EGP",
-//                             amount: amount,
-//                             automatic_payment_methods: { enabled: true },
-//                           });  res.send({
-//                             clientSecret: paymentIntent.client_secret,
-//                           });
-//                           appointment.paid = true;
-//                           await appointment.save();
-//                         }
+                    if (!patient || !appointment ) {
+                      return res.status(400).json({ error: 'Invalid patient or appointment ' });
+                    }
+               else if (appointment.paid == true)
+                   {
+                  return res.status(400).json({ error: 'appointment is already paid ' });
+                  }
+                    else{
+                          const paymentResult = await processCreditCardPayment(amount);
+                          res.json(paymentResult);
+                          appointment.paid = true;
+                          await appointment.save();
+                        }
 
-//                         } catch (e) {
-//                           return res.status(400).send({
-//                             error: {
-//                               message: e.message,
-//                             },
-//                           });
-//                         }       }     
-//               } catch (error) {
-//                 // Handle errors, log them, and return an error response
-//                 res.status(500).json({ error: 'An error occurred while processing payment' });
-//               }
-//             });
+                        } catch (e) {
+                          return res.status(400).send({
+                            error: {
+                              message: e.message,
+                            },
+                          });
+                        }       }     
+              } catch (error) {
+                // Handle errors, log them, and return an error response
+                res.status(500).json({ error: 'An error occurred while processing payment' });
+              }
+            });
+
+
+
 
 
     // patient view my wallet
@@ -1273,9 +1291,6 @@ app.get('/get-health-records/:patientId', async (req, res) => {
 
   
     
-
-    
-
 
 
   app.listen(3001,'localhost')
