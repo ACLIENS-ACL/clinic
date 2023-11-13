@@ -49,9 +49,9 @@ function AdminDashboard() {
         if (selectedOption) {
             // Parse the JSON string back into an object
             const selectedMember = JSON.parse(selectedOption);
-
             // Access the subscribedPackage property and set it to familyMember
             setSelectedFamilyMemberPackage(selectedMember.subscribedPackage);
+            setSelectedFamilyMemberCanceled(selectedMember.canceled)
             setSelectedFamilyMember(selectedMember._id);
         } else {
             // Handle the case when no family member is selected
@@ -121,7 +121,7 @@ function AdminDashboard() {
                 <select onChange={(e) => handleFamilyMemberSelect(e.target.value)}>
                     <option value="">Select a Family Member</option>
                     {familyMembers.map((member, index) => (
-                        <option key={index} value={JSON.stringify(member)}>
+                        <option key={index} value={JSON.stringify(member)} >
                             {member.name}
                         </option>
                     ))}
@@ -143,7 +143,7 @@ function AdminDashboard() {
                         {selectedFamilyMemberCanceled && (
                             <div>
                                 <h3>Status: Canceled</h3>
-                                <p>Cancelation Date: {userData.canceled}</p>
+                                <p>Cancelation Date: {selectedFamilyMemberCanceled}</p>
                             </div>
                         )}
                         {!selectedFamilyMemberCanceled && (

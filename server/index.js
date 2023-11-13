@@ -81,7 +81,7 @@ app.post('/register-patient', async(req, res) => {
   const existingPatientUsername= await PatientsModel.findOne({ username: userData.username.toLowerCase() })
   const existingDoctorUsername=await DoctorsModel.findOne({ email: userData.username.toLowerCase() })
   const existingAdminUsername=await AdminsModel.findOne({ email: userData.username.toLowerCase() })
-  if (existingPatientEmail || existingDoctorEmail || existingAdminEmail || existingPatientUsername||existingDoctorUsername||existingAdminUsername){
+  if (userData.username.toLowerCase()=="admin"||existingPatientEmail || existingDoctorEmail || existingAdminEmail || existingPatientUsername||existingDoctorUsername||existingAdminUsername){
     return res.status(400).json({ message: 'Username/Email Associated With an Existing Account' });
   }
   // Check if a user with the same username already exists in PatientsModel
@@ -126,7 +126,7 @@ app.post('/register-doctor', async (req, res) => {
   const existingPatientUsername= await PatientsModel.findOne({ username: userData.username.toLowerCase() })
   const existingDoctorUsername=await DoctorsModel.findOne({ email: userData.username.toLowerCase() })
   const existingAdminUsername=await AdminsModel.findOne({ email: userData.username.toLowerCase() })
-  if (existingPatientEmail || existingDoctorEmail || existingAdminEmail || existingPatientUsername||existingDoctorUsername||existingAdminUsername){
+  if (userData.username.toLowerCase()=="admin"||existingPatientEmail || existingDoctorEmail || existingAdminEmail || existingPatientUsername||existingDoctorUsername||existingAdminUsername){
     return res.status(400).json({ message: 'Email Associated With an Existing Account' });
   }
   // Check if a user with the same username already exists in DoctorsModel
@@ -334,12 +334,12 @@ app.post('/login-doctor', (req, res) => {
   app.post('/add-admin', async (req, res) => {
   try {
     const adminData = req.body;
-    const existingPatientEmail= await PatientsModel.findOne({ email: userData.email.toLowerCase() })
-  const existingDoctorEmail=await DoctorsModel.findOne({ email: userData.email.toLowerCase() })
-  const existingAdminEmail=await AdminsModel.findOne({ email: userData.email.toLowerCase() })
-  const existingPatientUsername= await PatientsModel.findOne({ username: userData.username.toLowerCase() })
-  const existingDoctorUsername=await DoctorsModel.findOne({ email: userData.username.toLowerCase() })
-  const existingAdminUsername=await AdminsModel.findOne({ email: userData.username.toLowerCase() })
+    const existingPatientEmail= await PatientsModel.findOne({ email: adminData.email.toLowerCase() })
+  const existingDoctorEmail=await DoctorsModel.findOne({ email: adminData.email.toLowerCase() })
+  const existingAdminEmail=await AdminsModel.findOne({ email: adminData.email.toLowerCase() })
+  const existingPatientUsername= await PatientsModel.findOne({ username: adminData.username.toLowerCase() })
+  const existingDoctorUsername=await DoctorsModel.findOne({ email: adminData.username.toLowerCase() })
+  const existingAdminUsername=await AdminsModel.findOne({ email: adminData.username.toLowerCase() })
   if (existingPatientEmail || existingDoctorEmail || existingAdminEmail || existingPatientUsername||existingDoctorUsername||existingAdminUsername){
     return res.status(400).json({ message: 'Email Associated With an Existing Account' });
   }
@@ -1190,7 +1190,7 @@ app.post('/subscribe', async (req, res) => {
   const { self, packageId, familyMembers } = req.body;
   try {
     // Update the user's subscription
-    if(self){
+    if(self!="false"){
     await PatientsModel.findOneAndUpdate(
       { username: logged.username },
       { subscribedPackage: packageId, subscriptionDate: new Date(), canceled: null}
@@ -1203,22 +1203,24 @@ app.post('/subscribe', async (req, res) => {
 
     const members = user.familyMembers;
 
-    familyMembers.forEach(async (member) => {
-      members.forEach(async (patientMem) => {
+    async function updateMembers() {
+      for (const member of familyMembers) {
+        for (const patientMem of members) {
           if (patientMem.name === member) {
-              if (patientMem.account) {
-                  await PatientsModel.findOneAndUpdate(
-                      { _id: patientMem.account },
-                      { subscribedPackage: packageId, subscriptionDate: new Date(), canceled: null }
-                  );
-              }
-              patientMem.subscribedPackage = packageId;
-              patientMem.subscriptionDate = new Date();
-              patientMem.canceled = null;
+            if (patientMem.account) {
+              await PatientsModel.findOneAndUpdate(
+                { _id: patientMem.account },
+                { subscribedPackage: packageId, subscriptionDate: new Date(), canceled: null }
+              );
+            }
+            patientMem.subscribedPackage = packageId;
+            patientMem.subscriptionDate = new Date();
+            patientMem.canceled = null;
           }
-      });
-  });
-  
+        }
+      }
+    }
+    await updateMembers();
     const fam = await PatientsModel.findOneAndUpdate(
       { username: logged.username },
       { familyMembers: members }
@@ -1695,7 +1697,7 @@ app.get('/get-family-discount', async (req, res) => {
           return res.status(404).json({ error: 'Patient not found' });
       }
 
-      if (patient.subscribedPackage) {
+      if (patient.subscribedPackage&&!patient.canceled) {
           const package = await PackagesModel.findById(patient.subscribedPackage);
           if (package) {
               // Fetch the family discount attribute from the package
