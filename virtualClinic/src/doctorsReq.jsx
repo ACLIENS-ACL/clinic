@@ -140,7 +140,8 @@ function DoctorRequests() {
                     key !== '__v' &&
                     key !== '_id' &&
                     key !== 'availableSlots' &&
-                    key !== 'username'
+                    key !== 'username' &&
+                    key !== 'wallet'
                 )
                 .map((key) => (
                   <li key={key}>

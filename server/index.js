@@ -1341,7 +1341,7 @@ app.post('/doctors/add-appointments', async (req, res) => {
   }
 });
 app.post('/reserve-family-member', async (req, res) => {
-  const { doctorId, dateTime , familyMemberId} = req.body;
+  const { doctorId, dateTime , familyMemberId, totalPaymentDue} = req.body;
 
   try {
     // Retrieve patient ID based on username
@@ -1384,9 +1384,13 @@ app.post('/reserve-family-member', async (req, res) => {
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
+    const value=doctor.wallet+totalPaymentDue*0.9;
     await DoctorsModel.updateOne(
       { _id: doctorId },
-      { $pull: { availableSlots: dateTime } }
+      {
+        $pull: { availableSlots: dateTime },
+        wallet:value
+      }
     );
 
     await newAppointment.save();
@@ -1399,7 +1403,7 @@ app.post('/reserve-family-member', async (req, res) => {
   }
 });
 app.post('/reserve', async (req, res) => {
-  const { doctorId, dateTime } = req.body;
+  const { doctorId, dateTime, totalPaymentDue } = req.body;
   const patientUsername = logged.username; // Assuming you have authentication middleware
 
   try {
@@ -1422,9 +1426,15 @@ app.post('/reserve', async (req, res) => {
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
+
+    const value=doctor.wallet+totalPaymentDue*0.9;
+    
     await DoctorsModel.updateOne(
       { _id: doctorId },
-      { $pull: { availableSlots: dateTime } }
+      {
+        $pull: { availableSlots: dateTime },
+        wallet:value
+      }
     );
 
     await newAppointment.save();

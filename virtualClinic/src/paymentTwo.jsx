@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -45,6 +45,7 @@ const PaymentForm = ({ totalPaymentDue, type, doctorId, dateTime, familyMemberId
                 const response = await axios.post('http://localhost:3001/reserve', {
                     doctorId,
                     dateTime,
+                    totalPaymentDue
                 });
             }
             else if (type === "familyMember") {
@@ -53,6 +54,7 @@ const PaymentForm = ({ totalPaymentDue, type, doctorId, dateTime, familyMemberId
                     doctorId,
                     dateTime,
                     familyMemberId,
+                    totalPaymentDue
                 });
             }
         } catch (error) {

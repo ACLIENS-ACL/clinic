@@ -48,7 +48,7 @@ function Signup() {
 
   const validatePassword = (password) => {
     // Password must contain at least one capital letter, one small letter, one special character, and one number.
-    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     return passwordPattern.test(password);
   };
 

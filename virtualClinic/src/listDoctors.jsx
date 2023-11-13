@@ -131,7 +131,8 @@ const Doctors = () => {
       if (selectedDoctor && selectedDoctor._id === doctor._id) {
         setSelectedDoctor(null);
       } else {
-        sethourlyRate(doctor.hourlyRate);
+        sethourlyRate(doctor.hourlyRate.toFixed(2));
+
         setSelectedDoctor(doctor);
       }
     }
@@ -184,7 +185,7 @@ const Doctors = () => {
   }, [doctors, searchName, searchSpecialty, selectedDoctor, selectedDateTime]);
 
   const handleReservationOptionChange = async (option) => {
-   await axios.get(`http://localhost:3001/get-doctors-session-price/`)
+    await axios.get(`http://localhost:3001/get-doctors-session-price/`)
       .then((response) => {
         setDoctors(response.data);
         setLoading(false);
@@ -203,8 +204,7 @@ const Doctors = () => {
     try {
       const response = await axios.get(`http://localhost:3001/get-family-member-session-price/${familyMember._id}/${selectedDoctor._id}`);
       const familyMemberSessionPrice = response.data;
-      sethourlyRate(familyMemberSessionPrice);
-      alert(familyMemberSessionPrice);
+      sethourlyRate(familyMemberSessionPrice.toFixed(2));
       // Update the selected doctor's session price with the family member's session price
       const updatedDoctors = doctors.map((doctor) => {
         if (selectedDoctor && doctor._id === selectedDoctor._id) {
@@ -225,7 +225,7 @@ const Doctors = () => {
   const NavigateToPay = (totalPaymentDue, type, doctorId, dateTime, familyMemberId) => {
     const navigationPath = `/payAppointment/${totalPaymentDue}/${type}/${doctorId}/${dateTime}/${familyMemberId}`;
     navigate(navigationPath);
-};
+  };
 
   const reserveSlot = async (doctorId, dateTime, e) => {
     // Prevent the default behavior of the click event
@@ -235,11 +235,11 @@ const Doctors = () => {
 
     try {
       if (reservationOption === "self") {
-        NavigateToPay(hourlyRate,"self",doctorId,dateTime,"none")
-        
+        NavigateToPay(hourlyRate, "self", doctorId, dateTime, "none")
+
       }
       else if (reservationOption === "familyMember" && selectedFamilyMember) {
-        NavigateToPay(hourlyRate,"familyMember",doctorId,dateTime,selectedFamilyMember._id)
+        NavigateToPay(hourlyRate, "familyMember", doctorId, dateTime, selectedFamilyMember._id)
       }
     } catch (error) {
       console.error(error);
@@ -311,7 +311,7 @@ const Doctors = () => {
           <li key={doctor._id} style={listItemStyle} onClick={(e) => displayDoctorDetails(doctor, e)}>
             <strong>Name:</strong> {doctor.name} <br />
             <strong>Specialty:</strong> {doctor.specialty} <br />
-            <strong>Session Price Per Hour:</strong> ${doctor.hourlyRate}
+            <strong>Session Price Per Hour:</strong> ${doctor.hourlyRate.toFixed(2)}
             {selectedDoctor && selectedDoctor._id === doctor._id && (
               <div style={doctorDetailsStyle}>
                 <p><strong>Specialty:</strong> {selectedDoctor.specialty}</p>
