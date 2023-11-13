@@ -22,7 +22,7 @@ const Navbar = () => {
         // Fetch wallet value from the server
         axios.get(`http://localhost:3001/get-wallet-value`)
             .then((response) => {
-                setWalletValue(response.data.walletValue);
+                setWalletValue(response.data.walletValue.toFixed(2));
             })
             .catch((error) => {
                 console.error('Error fetching wallet value:', error);

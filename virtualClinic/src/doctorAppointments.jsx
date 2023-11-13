@@ -170,7 +170,14 @@ function AppointmentsList() {
               <div>
                 <strong>Patient:</strong> {appointment.patientName}<br />
               </div>
-              {appointment.status === 'completed' && !appointment.followedUp &&  (
+              {
+                appointment.familyMember && (
+                  <div>
+                    <strong>For Family Memebr:</strong> {appointment.familyMember.name}<br />
+                  </div>
+                )
+              }
+              {appointment.status === 'completed' && !appointment.followedUp && (
                 <div>
                   <label>
                     Follow-up Date:

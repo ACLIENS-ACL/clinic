@@ -38,7 +38,6 @@ function MedicalHistory() {
 
         axios.post('http://localhost:3001/upload', formData)
             .then((response) => {
-                alert(formData);
                 if (response.status === 200) {
                     // Refresh the list of uploaded files after a successful upload
                     axios.get('http://localhost:3001/medicalRecords')
@@ -58,14 +57,12 @@ function MedicalHistory() {
     const handleDelete = (recordId) => {
         axios.delete(`http://localhost:3001/delete/${recordId}`)
             .then((response) => {
-                alert(recordId);
                 if (response.status === 200) {
                     // Remove the deleted file from the list
                     setUploadedFiles((prevFiles) => prevFiles.filter((file) => file._id !== recordId));
                 }
             })
             .catch((error) => {
-                alert(recordId);
                 console.error(error);
             });
     };
@@ -81,7 +78,7 @@ function MedicalHistory() {
                         {uploadedFiles.map((file) => (
                             <li key={file._id}>
                                 <a href={`http://localhost:3001/${file.filePath}`}
-                                    onClick={() => alert(`file://C:/Users/aminn/OneDrive/Desktop/clinic-main/clinic-main/server/uploads/${file.filePath}`)} download>${file.fileName}</a>
+                                    download>${file.fileName}</a>
                                 <button onClick={() => handleDelete(file._id)}>Delete</button>
                             </li>
                         ))}

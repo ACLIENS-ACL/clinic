@@ -318,20 +318,21 @@ const Doctors = () => {
                 <p><strong>Affiliation (Hospital):</strong> {selectedDoctor.affiliation}</p>
                 <p><strong>Educational Background:</strong> {selectedDoctor.educationalBackground}</p>
 
-                {selectedDoctor.availableSlots.length > 0 && (
+                {selectedDoctor.availableSlots.filter(slot => new Date(slot) > new Date()).length > 0 && (
                   <div>
                     <p><strong>Available Slots:</strong></p>
                     <ul>
-                      {selectedDoctor.availableSlots.map((slot, index) => (
-                        <li key={index}>
-                          {formatTimeToAMPM(slot)}
-                          <button onClick={(e) => reserveSlot(doctor._id, slot, e)}>Pay & Reserve</button>
-                        </li>
-                      ))}
+                      {selectedDoctor.availableSlots.filter(slot => new Date(slot) > new Date())
+                        .map((slot, index) => (
+                          <li key={index}>
+                            {formatTimeToAMPM(slot)}
+                            <button onClick={(e) => reserveSlot(doctor._id, slot, e)}>Pay & Reserve</button>
+                          </li>
+                        ))}
                     </ul>
                   </div>
                 )}
-                {selectedDoctor.availableSlots.length > 0 && (
+                {selectedDoctor.availableSlots.filter(slot => new Date(slot) > new Date()).length > 0 && (
                   <div style={{ marginTop: '10px' }}>
                     <p><strong>Reservation Options:</strong></p>
                     <label>

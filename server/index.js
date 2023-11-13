@@ -654,11 +654,19 @@ app.get('/get-doctor-info', async (req, res) => {
 
 app.put('/update-doctor-info', async (req, res) => {
   try {
-    await DoctorsModel.updateOne({ username:logged.username }, req.body);
-    res.json({ message: 'Doctor info updated successfully.' });
+    const existingPatientEmail = await PatientsModel.findOne({ email: req.body.email.toLowerCase() });
+    const existingDoctorEmail = await DoctorsModel.findOne({ email: req.body.email.toLowerCase() });
+    const existingAdminEmail = await AdminsModel.findOne({ email: req.body.email.toLowerCase() });
+  
+    if (existingPatientEmail || existingDoctorEmail || existingAdminEmail) {
+      return res.status(400).json({ message: 'Email Associated with Another Account' });
+    }
+  
+    await DoctorsModel.updateOne({ username: logged.username }, req.body);
+    return res.json({ message: 'Doctor info updated successfully.' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'An error occurred while updating doctor info.' });
+    return res.status(500).json({ message: 'An error occurred while updating doctor info.' });
   }
 });
 
@@ -973,9 +981,24 @@ app.get('/doctorsAppointments', async (req, res) => {
         };
         enhancedAppointments.push(enhancedAppointment);
       }
-      } else {
-        // Handle the case where the doctor is not found
-        console.error('Doctor not found for appointment ID:', appointment._id);
+      } else if(appointment.familyMember.account==null){
+        console.log("Helloooo")
+        // Find the doctor using the doctor's ID in the appointment
+        const patient = await PatientsModel.findOne({ _id: appointment.patient });
+  
+        if (patient) {
+          // Enhance the appointment object with doctor's name
+          const enhancedAppointment = {
+            _id: appointment._id,
+            date: appointment.date,
+            status: appointment.status,
+            patientName: patient.name,
+            familyMember:appointment.familyMember,
+            followedUp:appointment.followedUp
+          };
+          console.log(enhancedAppointment);
+          enhancedAppointments.push(enhancedAppointment);
+        }
       }
     }
 
@@ -1073,13 +1096,23 @@ app.get('/patientsAppointments', async (req, res) => {
       // Find the doctor using the doctor's ID in the appointment
       const doctor = await DoctorsModel.findOne({ _id: appointment.doctor });
 
-      if (doctor) {
+      if (doctor&&appointment.familyMember==null) {
         // Enhance the appointment object with doctor's name
         const enhancedAppointment = {
           _id: appointment._id,
           date: appointment.date,
           status: appointment.status,
           doctorName: doctor.name,
+        };
+        enhancedAppointments.push(enhancedAppointment);
+      } else  if (doctor) {
+        // Enhance the appointment object with doctor's name
+        const enhancedAppointment = {
+          _id: appointment._id,
+          date: appointment.date,
+          status: appointment.status,
+          doctorName: doctor.name,
+          familyMember: appointment.familyMember
         };
         enhancedAppointments.push(enhancedAppointment);
       } else {

@@ -6,26 +6,35 @@ import Navbar from './navbar';
 function AppointmentForm() {
   const navigate = useNavigate();
   useEffect(() => {
-      // Fetch admin data from the server
-      axios.get(`http://localhost:3001/get-user-type`).then((response) => {
-          const responseData = response.data;
-          if (responseData.type !== 'doctor' || responseData.in !== true) {
-              navigate('/login');
-              return null;
-          }
-      });
+    // Fetch admin data from the server
+    axios.get(`http://localhost:3001/get-user-type`).then((response) => {
+      const responseData = response.data;
+      if (responseData.type !== 'doctor' || responseData.in !== true) {
+        navigate('/login');
+        return null;
+      }
+    });
   }, []);
   const [selectedDateTime, setSelectedDateTime] = useState('');
   const [appointments, setAppointments] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const addAppointment = async (e) => {
+  const addAppointment = (e) => {
     e.preventDefault();
+
     if (selectedDateTime) {
       setErrorMessage(''); // Clear any existing error message
+
       const newAppointment = new Date(selectedDateTime);
-      setAppointments([...appointments, newAppointment]);
-      setSelectedDateTime('');
+
+      // Check if the selected appointment is greater than the current time
+      const currentTime = new Date();
+      if (newAppointment > currentTime) {
+        setAppointments([...appointments, newAppointment]);
+        setSelectedDateTime('');
+      } else {
+        setErrorMessage('Appointment must be scheduled for a future date and time.');
+      }
     } else {
       setErrorMessage('Datetime must be entered.');
     }
@@ -62,7 +71,7 @@ function AppointmentForm() {
     border: '1px solid #ccc',
     borderRadius: '5px',
     background: '#f3f3f3',
-    width:'50%'
+    width: '50%'
   };
 
   const formStyle = {
@@ -95,7 +104,7 @@ function AppointmentForm() {
 
   return (
     <div style={containerStyle}>
-      <Navbar/>
+      <Navbar />
       <h1>Add Appointments</h1>
       <form style={formStyle}>
         <label>Appointment Slot:</label>
@@ -105,7 +114,7 @@ function AppointmentForm() {
           value={selectedDateTime}
           onChange={(e) => setSelectedDateTime(e.target.value)}
           style={inputStyle}
-          
+
         />
         <button onClick={addAppointment} style={buttonStyle}>
           Add Slot
