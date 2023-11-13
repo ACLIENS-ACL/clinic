@@ -41,7 +41,10 @@ const PatientsSchema = new mongoose.Schema({
           type: Date,
           default: null,
         },
-         
+        healthRecords: {
+          type: [Object], // Array of strings for health records
+          default: [], // Default to an empty array
+        }   
       }
     ],
     default: [], // Default to an empty array

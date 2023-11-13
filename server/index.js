@@ -510,23 +510,43 @@ app.get('/get-my-patients', async (req, res) => {
     // Create a new array with 'info' objects
     const patientInfo = appointments.map(appointment => {
       const patient = patients.find(p => p._id.equals(appointment.patient));
-      return {
-        info: {
-          _id:patient._id,
-          name: patient.name,
-          email: patient.email,
-          dob:patient.dob,
-          gender:patient.gender,
-          mobileNumber:patient.mobileNumber,
-          emergencyContactName:patient.emergencyContactName,
-          emergencyContactNumber:patient.emergencyContactNumber,
-          healthRecords:patient.healthRecords,
-          medicalHistory:patient.medicalHistory,
-          date: appointment.date,
-        },
-      };
+      const familyMember = appointment.familyMember;
+      if (familyMember) {
+        const foundFamilyMember = patient.familyMembers.find(member => member.name === familyMember.name);
+        // Return family member info only
+        return {
+          info: {
+            _id: patient._id,
+            name:patient.name,
+            familyMemberName: familyMember.name,
+            age: familyMember.age,
+            gender: familyMember.gender,
+            account:familyMember.account,
+            healthRecords: foundFamilyMember.healthRecords,
+            date: appointment.date,
+            
+          },
+        };
+      } else {
+        // Return patient info
+        return {
+          info: {
+            _id: patient._id,
+            name: patient.name,
+            email: patient.email,
+            dob: patient.dob,
+            gender: patient.gender,
+            mobileNumber: patient.mobileNumber,
+            emergencyContactName: patient.emergencyContactName,
+            emergencyContactNumber: patient.emergencyContactNumber,
+            healthRecords: patient.healthRecords,
+            medicalHistory: patient.medicalHistory,
+            date: appointment.date,
+          },
+        };
+      }
     });
-
+    console.log(patientInfo);
     res.json(patientInfo);
   } catch (error) {
     console.error(error);
@@ -839,6 +859,7 @@ app.put("/update-family-member",async (req,res)=>{
         account:patient._id,
         name:patient.name,
         nationalID:patient.nationalID,
+        gender:patient.gender,
         age: (new Date()).getFullYear() - patient.dob.getFullYear(),
         relation:relation.toLowerCase()
       }
@@ -1061,8 +1082,22 @@ app.get('/get-family-member-session-price/:familyMemberId/:doctorId', async (req
 app.post('/upload-health-record', upload.single('recordFile'), async (req, res) => {
   try {
     const patientId = req.body.patientId;
+    const familyMember=req.body.familyMember;
     const filePath = req.file.path;
+    if(familyMember){
+      const patient = await PatientsModel.findById(patientId);
+      const foundFamilyMember = patient.familyMembers.find(member => member.name === familyMember);
 
+      if (foundFamilyMember) {
+        // Push the filePath to the healthRecords of the found family member
+        foundFamilyMember.healthRecords.push(filePath);
+        
+        // Save the changes to the patient
+        await patient.save();
+  
+        return res.status(200).json({ message: 'Health record added successfully' });
+    }
+  }
     // Update the patient's healthRecords array with the new file path
     const patient = await PatientsModel.findByIdAndUpdate(
       patientId,
@@ -1397,6 +1432,7 @@ app.post('/reserve-family-member', async (req, res) => {
       age: familyMember.age,
       gender: familyMember.gender,
       relation: familyMember.relation,
+      healthRecords:familyMember.healthRecords,
     };
     if(familyMember.account){
       const tempAppoitnment = new AppointmentsModel({

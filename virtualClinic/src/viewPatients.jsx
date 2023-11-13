@@ -23,7 +23,12 @@ function PatientList() {
   const [showAddRecordForm, setShowAddRecordForm] = useState(false);
   const [newRecordFile, setNewRecordFile] = useState(null);
 
-  const handleAddRecordClick = () => {
+  const handleAddRecordClick = (e) => {
+    // Check if the clicked element is not an interactive element
+    if (['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) {
+      setShowAddRecordForm(true); // Stop the click event from propagating
+    }
+
     setShowAddRecordForm(!showAddRecordForm);
   };
 
@@ -33,9 +38,13 @@ function PatientList() {
 
   const handleAddRecordSubmit = () => {
     const formData = new FormData();
-    formData.append('patientId', selectedPatient.info._id); // Replace with the actual patient ID
+    formData.append('patientId', selectedPatient.info._id);
+    formData.append('familyMember', selectedPatient.info.familyMemberName) // Replace with the actual patient ID
     formData.append('recordFile', newRecordFile);
+    const familyMemberValue = formData.get('familyMember');
 
+    // Alert the value
+    alert(`Family Member Value: ${familyMemberValue}`);
     // Assuming you have an API endpoint to upload a health record file
     axios.post('http://localhost:3001/upload-health-record', formData)
       .then(response => {
@@ -51,6 +60,7 @@ function PatientList() {
       });
   };
   const handleHealthRecordClick = (filePath) => {
+    alert(filePath);
     const fileName = filePath.split('\\').pop();
     axios.get(`http://localhost:3001/uploads/${fileName}`, { responseType: 'blob' })
       .then(response => {
@@ -61,7 +71,7 @@ function PatientList() {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        
+
         window.URL.revokeObjectURL(url);
       })
       .catch(error => {
@@ -100,7 +110,10 @@ function PatientList() {
       });
   };
 
-  const handlePatientClick = (patient) => {
+  const handlePatientClick = (patient,e) => {
+    if (['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) {
+      return;
+    }
     setSelectedPatient(patient === selectedPatient ? null : patient);
   };
 
@@ -128,73 +141,125 @@ function PatientList() {
         </label>
       </div>
       <ul style={listStyle}>
-        {filteredPatients.map(item => (
+        {filteredPatients.filter(item => !item.info.account).map(item => (
           <li key={item.info.name} style={listItemStyle}>
-            <div onClick={() => handlePatientClick(item)} style={patientInfoStyle}>
-              <strong style={labelStyle}>Name:</strong> {item.info.name}
-              <br />
-              <strong style={labelStyle}>Appointment Date:</strong>{' '}
-              {item.info.date ? new Date(item.info.date).toLocaleDateString() : 'N/A'}
-            </div>
-            {selectedPatient === item && (
-              <div style={dropdownStyle}>
-                <strong style={labelStyle}>Email:</strong> {item.info.email}
+            {!item.info.familyMemberName && (
+              <div onClick={(e) => handlePatientClick(item,e)} style={patientInfoStyle}>
+                <strong style={labelStyle}>Patient Name:</strong> {item.info.name}
                 <br />
-                <strong style={labelStyle}>Date of Birth:</strong> {item.info.dob}
-                <br />
-                <strong style={labelStyle}>Gender:</strong> {item.info.gender}
-                <br />
-                <strong style={labelStyle}>Mobile Number:</strong> {item.info.mobileNumber}
-                <br />
-                <strong style={labelStyle}>Emergency Contact Name:</strong>{' '}
-                {item.info.emergencyContactName}
-                <br />
-                <strong style={labelStyle}>Emergency Contact Number:</strong>{' '}
-                {item.info.emergencyContactNumber}
-                <br />
+                <strong style={labelStyle}>Appointment Date:</strong>{' '}
+                {item.info.date ? new Date(item.info.date).toLocaleDateString() : 'N/A'}
 
-                <strong style={labelStyle}>Health Records:</strong>{' '}
-                {item.info.healthRecords && item.info.healthRecords.map((record, index) => (
-                  <li key={index}>
-                    <a
-                      href="#"
-                      onClick={() => handleHealthRecordClick(record)}
-                    >
-                      View Health Record {index + 1}
-                    </a>
-                  </li>
+                {selectedPatient === item && (
+                  <div style={dropdownStyle}>
+                    <strong style={labelStyle}>Email:</strong> {item.info.email}
+                    <br />
+                    <strong style={labelStyle}>Date of Birth:</strong> {item.info.dob}
+                    <br />
+                    <strong style={labelStyle}>Gender:</strong> {item.info.gender}
+                    <br />
+                    <strong style={labelStyle}>Mobile Number:</strong> {item.info.mobileNumber}
+                    <br />
+                    <strong style={labelStyle}>Emergency Contact Name:</strong>{' '}
+                    {item.info.emergencyContactName}
+                    <br />
+                    <strong style={labelStyle}>Emergency Contact Number:</strong>{' '}
+                    {item.info.emergencyContactNumber}
+                    <br />
 
-                ))}
-                <br />
-                <strong style={labelStyle}>Medical History:</strong>
-                <ul>
-                  {item.info.medicalHistory && item.info.medicalHistory.map((file, index) => (
-                    <li key={index}>
-                      <a
-                        href={`http://localhost:3001/${file.filePath}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {file.fileName}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-                <div>
-                  <button onClick={handleAddRecordClick} style={buttonStyle}>
-                    {showAddRecordForm ? 'Cancel' : 'Add Health Record'}
-                  </button>
-                  {showAddRecordForm && (
-                    <div style={addRecordFormStyle}>
-                      <input
-                        type="file"
-                        accept=".pdf, .doc, .docx" // Adjust accepted file types as needed
-                        onChange={handleFileChange}
-                      />
-                      <button onClick={handleAddRecordSubmit}>Submit</button>
+                    <strong style={labelStyle}>Health Records:</strong>{' '}
+                    {item.info.healthRecords && item.info.healthRecords.map((record, index) => (
+                      <li key={index}>
+                        <a
+                          href="#"
+                          onClick={() => handleHealthRecordClick(record)}
+                        >
+                          View Health Record {index + 1}
+                        </a>
+                      </li>
+
+                    ))}
+                    <br />
+                    <strong style={labelStyle}>Medical History:</strong>
+                    <ul>
+                      {item.info.medicalHistory && item.info.medicalHistory.map((file, index) => (
+                        <li key={index}>
+                          <a
+                            href={`http://localhost:3001/${file.filePath}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {file.fileName}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                    <div>
+                      <button onClick={(e) => handleAddRecordClick(e)} style={buttonStyle}>
+                        {showAddRecordForm ? 'Cancel' : 'Add Health Record'}
+                      </button>
+                      {showAddRecordForm && (
+                        <div style={addRecordFormStyle}>
+                          <input
+                            type="file"
+                            accept=".pdf, .doc, .docx" // Adjust accepted file types as needed
+                            onChange={handleFileChange}
+                          />
+                          <button onClick={handleAddRecordSubmit}>Submit</button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {item.info.familyMemberName && (
+              <div onClick={(e) => handlePatientClick(item,e)} style={patientInfoStyle}>
+                <strong style={labelStyle}>Reserver Name:</strong> {item.info.name}
+                <br />
+                <strong style={labelStyle}>For Family Member :</strong> {item.info.familyMemberName}
+                <br />
+                <strong style={labelStyle}>Appointment Date:</strong>{' '}
+                {item.info.date ? new Date(item.info.date).toLocaleDateString() : 'N/A'}
+
+                {selectedPatient === item && (
+                  <div style={dropdownStyle}>
+
+                    <strong style={labelStyle}>Age:</strong> {item.info.age}
+                    <br />
+                    <strong style={labelStyle}>Gender:</strong> {item.info.gender}
+                    <br />
+
+                    <strong style={labelStyle}>Health Records:</strong>{' '}
+                    {item.info.healthRecords && item.info.healthRecords.map((record, index) => (
+                      <li key={index}>
+                        <a
+                          href="#"
+                          onClick={() => handleHealthRecordClick(record)}
+                        >
+                          View Health Record {index + 1}
+                        </a>
+                      </li>
+
+                    ))}
+                    <br />
+                    <div>
+                      <button onClick={(e) => handleAddRecordClick(e)} style={buttonStyle}>
+                        {showAddRecordForm ? 'Cancel' : 'Add Health Record'}
+                      </button>
+                      {showAddRecordForm && (
+                        <div style={addRecordFormStyle}>
+                          <input
+                            type="file"
+                            accept=".pdf, .doc, .docx" // Adjust accepted file types as needed
+                            onChange={handleFileChange}
+                          />
+                          <button onClick={handleAddRecordSubmit}>Submit</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <hr style={hrStyle} />

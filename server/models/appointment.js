@@ -18,6 +18,10 @@ const AppointmentSchema = new mongoose.Schema({
       age: Number,
       gender: String,
       relation: String,
+      healthRecords: {
+        type: [Object], // Array of strings for health records
+        default: [], // Default to an empty array
+      }   
     },
     default:null
   },
