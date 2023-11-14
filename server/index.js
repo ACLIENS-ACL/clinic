@@ -870,7 +870,7 @@ app.put("/update-family-member",async (req,res)=>{
       
       if (existingFamilyMember) {
         // Family member already exists, handle the error
-        res.status(400).json({message:"Family Member Already exists"});
+        return res.status(400).json({message:"Family Member Already exists"});
 
       } else {
         // Add the family member to the user's familyMembers array
