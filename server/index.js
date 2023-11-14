@@ -675,10 +675,10 @@ app.get('/get-doctor-info', async (req, res) => {
 app.put('/update-doctor-info', async (req, res) => {
   try {
     const existingPatientEmail = await PatientsModel.findOne({ email: req.body.email.toLowerCase() });
+    const sameDoctor=await DoctorsModel.findOne({ username: logged.username });
     const existingDoctorEmail = await DoctorsModel.findOne({ email: req.body.email.toLowerCase() });
     const existingAdminEmail = await AdminsModel.findOne({ email: req.body.email.toLowerCase() });
-  
-    if (existingPatientEmail || existingDoctorEmail || existingAdminEmail) {
+    if (existingPatientEmail || (existingDoctorEmail&&(sameDoctor._id.toString()!=existingDoctorEmail._id.toString())) || existingAdminEmail) {
       return res.status(400).json({ message: 'Email Associated with Another Account' });
     }
   

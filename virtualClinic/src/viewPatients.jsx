@@ -202,7 +202,7 @@ function PatientList() {
                         <div style={addRecordFormStyle}>
                           <input
                             type="file"
-                            accept=".pdf, .doc, .docx" // Adjust accepted file types as needed
+                            accept=".pdf, .doc, .docx, png." // Adjust accepted file types as needed
                             onChange={handleFileChange}
                           />
                           <button onClick={handleAddRecordSubmit}>Submit</button>
@@ -251,7 +251,7 @@ function PatientList() {
                         <div style={addRecordFormStyle}>
                           <input
                             type="file"
-                            accept=".pdf, .doc, .docx" // Adjust accepted file types as needed
+                            accept=".pdf, .doc, .docx, .png" // Adjust accepted file types as needed
                             onChange={handleFileChange}
                           />
                           <button onClick={handleAddRecordSubmit}>Submit</button>
