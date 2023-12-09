@@ -12,7 +12,6 @@ const multer = require('multer');
 const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs');
-
 const uploadDirectory = 'uploads';
 
 if (!fs.existsSync(uploadDirectory)) {
@@ -42,7 +41,6 @@ var logged = {
 };
 
 mongoose.connect('mongodb://localhost:27017/clinic');
-
 
 
 // Create a transporter with your email service credentials
@@ -1785,5 +1783,92 @@ app.get('/get-family-discount', async (req, res) => {
       return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
+
+// request a followup
+app.post('/request-follow-up', async (req, res) => {
+  try {
+    const { patientId, familyMemberId, originalAppointmentId, followUpDateTime } = req.body;
+
+    
+    if (!patientId && !familyMemberId) {
+      return res.status(400).json({ message: 'Either patientId or familyMemberId must be provided' });
+    }
+
+   
+    const originalAppointment = await AppointmentsModel.findById(originalAppointmentId);
+
+    if (!originalAppointment) {
+      return res.status(404).json({ message: 'Original appointment not found' });
+    }
+
+    const patient = patientId ? await PatientsModel.findById(patientId) : null;
+    const familyMember = familyMemberId ? await patient.familyMembers.id(familyMemberId) : null;
+
+    if (!patient && !familyMember) {
+      return res.status(404).json({ message: 'Patient or family member not found' });
+    }
+
+    const followUpRequest = new AppointmentsModel({
+      date: new Date(followUpDateTime),
+      patient: originalAppointment.patient,
+      doctor: originalAppointment.doctor,
+      familyMember: originalAppointment.familyMember,
+      type: "followup",
+      status: 'pending' 
+    });
+
+    await followUpRequest.save();
+
+    return res.status(200).json({ message: 'Follow-up appointment request submitted successfully', followUpRequest });
+  } catch (error) {
+    console.error('Error submitting follow-up request:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
+// doctor accept or reject
+
+app.post('/decide-follow-up-request', async (req, res) => {
+  try {
+    const { originalAppointmentId, action } = req.body;
+
+    if (!originalAppointmentId || !action) {
+      return res.status(400).json({ message: 'Both originalAppointmentId and action must be provided' });
+    }
+
+    const originalAppointment = await AppointmentsModel.findById(originalAppointmentId);
+
+    if (!originalAppointment) {
+      return res.status(404).json({ message: 'Original appointment not found' });
+    }
+
+    
+    if (originalAppointment.followUpRequest && originalAppointment.followUpRequest.status === 'pending') {
+    
+      if (action === 'accept') {
+        originalAppointment.followUpRequest.status = 'accepted';
+      } else if (action === 'revoke') {
+        originalAppointment.followUpRequest.status = 'revoked';
+      } else {
+        return res.status(400).json({ message: 'Invalid action' });
+      }
+
+     
+      await originalAppointment.save();
+
+      return res.status(200).json({ message: 'Follow-up request processed successfully', originalAppointment });
+    } else {
+      return res.status(400).json({ message: 'No pending follow-up request for the original appointment' });
+    }
+  } catch (error) {
+    console.error('Error processing follow-up request:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 app.listen(3001,'localhost')
