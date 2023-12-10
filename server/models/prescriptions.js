@@ -12,30 +12,35 @@ const PrescriptionSchema = new mongoose.Schema({
     required: true,
   },
   date: Date,
+  appointmentId:{
+    type: mongoose.Types.ObjectId,
+    ref: 'appointment',
+    required: true,
+  },
   medicines: {
-    type: [
-      {
-        name: {
-          type: String,
-          required: true,
-        },
-        type: {
-          type: String,
-          required: true,
-        }
-      }
-    ],
+    type:[{
+    name:String,
+    dose:{
+      daily:Number,
+      days:Number
+    }
+  }
+  ],
     default: []
+  },
+  filled:{
+    type:Boolean,
+    default: false
+  },
+  fileName:{
+    type: String,
+    default:""
+  },
+  familyMmeber:{
+    type:String,
+    default:null
   }
-});
-
-// Define a virtual attribute for 'status'
-PrescriptionSchema.virtual('status').get(function () {
-  if (this.medicines.length === 0) {
-    return 'unfilled';
-  } else {
-    return 'filled';
-  }
+  
 });
 
 const PrescriptionModel = mongoose.model('prescriptions', PrescriptionSchema);

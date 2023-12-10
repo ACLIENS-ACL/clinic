@@ -6,6 +6,10 @@ const AppointmentSchema = new mongoose.Schema({
     ref: 'patients',
     required: true,
   },
+  cost:{
+    type:Number,
+    default:0.0
+  },
   familyMember:{
     type: {
       account: {
@@ -18,6 +22,10 @@ const AppointmentSchema = new mongoose.Schema({
       age: Number,
       gender: String,
       relation: String,
+      healthRecords: {
+        type: [Object], // Array of strings for health records
+        default: [], // Default to an empty array
+      }   
     },
     default:null
   },
@@ -43,11 +51,10 @@ const AppointmentSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  paid: {
-    type: Boolean,
-    default: false,
+  prescribed:{
+    type:mongoose.Schema.Types.ObjectId,
+    default:null,
   }
-
 });
 
 // Update the virtual field for 'status' to check 'cancelled' attribute

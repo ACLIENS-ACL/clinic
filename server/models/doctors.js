@@ -11,7 +11,7 @@ const UsersSchema = new mongoose.Schema({
   specialty: String,
   wallet: {
     type: Number,
-    defualt:0.0
+    default:0.0
   },
   userType: {
     type: String,
