@@ -1,22 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { MDBBtn, MDBCard, MDBCardBody, MDBCardTitle, MDBCardText, MDBContainer, MDBRow, MDBCol } from 'mdb-react-ui-kit';
 import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
 
 function DoctorDashboard() {
   const navigate = useNavigate();
   useEffect(() => {
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`)
-      .then((response) => {
-        const responseData = response.data;
-        if (responseData.type !== "doctor" || responseData.in !== true) {
-          navigate('/login')
-          return null;
-        }
-      })
-  }, []);
+    try {
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+      if (!token) {
+        // If the token doesn't exist, navigate to the login page
+        navigate('/login');
+        return;
+      }
+
+      // Decode the token to get user information
+      const decodedToken = jwtDecode(token);
+      const userType = decodedToken.type.toLowerCase();
+      if (!userType || userType !== 'doctor') {
+        // If the user is not a patient or is not logged in, navigate to the login page
+        navigate('/login');
+      }
+    } catch (error) {
+
+    }
+  }, [navigate]);
   return (
     <div>
       <Navbar />
@@ -87,6 +99,31 @@ function DoctorDashboard() {
                 </MDBCardText>
                 <Link to="/changePassword">
                   <MDBBtn color="info">Change Password</MDBBtn>
+                </Link>
+              </MDBCardBody>
+            </MDBCard>
+          </MDBCol>
+
+          <MDBCol md="4" className="mb-4">
+            <MDBCard>
+              <MDBCardBody>
+                <MDBCardTitle>Follow Up Reqs</MDBCardTitle>
+                <MDBCardText>
+                  View FollowUp Reqs
+                </MDBCardText>
+                <Link to="/followupReqs">
+                  <MDBBtn color="info">View Requests</MDBBtn>
+                </Link>
+              </MDBCardBody>
+            </MDBCard>
+          </MDBCol>
+          <MDBCol md="4" className="mb-4">
+            <MDBCard>
+              <MDBCardBody>
+                <MDBCardTitle>View Prescriptions</MDBCardTitle>
+                <MDBCardText>View and manage your prescriptions.</MDBCardText>
+                <Link to="/myPresList">
+                  <MDBBtn color="secondary">View Prescriptions</MDBBtn>
                 </Link>
               </MDBCardBody>
             </MDBCard>

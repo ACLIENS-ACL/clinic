@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Signup from './signup';
 import Login from './login';
@@ -30,7 +30,18 @@ import MedicalRecords from './medicalRecords'
 import Contract from './contract'
 import HealthRecords from './healthRecords'
 import PaymentTwo from './paymentTwo';
+import FollowUpReq from './followUpReqs';
+import Video from './video'
+import Chat from './chat'
+import Prescription from './prescriptions';
+import PresListDoctor from './presListDoctors'
+import CartView from './cart';
+import PaymentOrder from './payOrder';
+import MyDoctors from './doctorsContact'
+import MyPatients from './patientsContact'
+import ModPackages from './modifyPackages'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+
 
 function App() {
   return (
@@ -66,7 +77,18 @@ function App() {
         <Route path="/modifyMedicalRecord" element={<MedicalRecords />} />
         <Route path="/viewHealthRecords" element={<HealthRecords />} />
         <Route path="/contract" element={<Contract />} />
+        <Route path="/followupReqs" element={<FollowUpReq />} />
+        {/* <Route path="/video" element={<Video />} /> */}
+        <Route path="/chat/:roomId" element={<Chat />} />
+        <Route path="/video/:roomId" element={<Video />} />
+        <Route path="/prescription/:appointmentId" element={<Prescription />} />
+        <Route path="/myPresList" element={<PresListDoctor />} />
+        <Route path="/cart/:prescriptionID" element={<CartView />} />
+        <Route path="/payOrder" element={<PaymentOrder />} />
         <Route path="*" element={<Navigate to="/login" />} />
+        <Route path="/myDoctors" element={<MyDoctors />} />
+        <Route path="/myPatients" element={<MyPatients />} />
+        <Route path="/modifyPackages" element={<ModPackages />} />
       </Routes>
     </BrowserRouter>
   );

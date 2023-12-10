@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
 
 const containerStyle = {
   fontFamily: 'Arial, sans-serif',
@@ -49,22 +50,85 @@ function AppointmentsList() {
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
   const [followUpDateTime, setFollowUpDateTime] = useState('');
-
+  const [rescheduleDateTime, setRescheduleDateTime] = useState(null);
   useEffect(() => {
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`)
-      .then((response) => {
-        const responseData = response.data;
-        if (responseData.type.toLowerCase() !== "doctor" || responseData.in !== true) {
-          navigate('/login')
-          return null;
-        }
+    try {
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+      if (!token) {
+        // If the token doesn't exist, navigate to the login page
+        navigate('/login');
+        return;
+      }
+
+      // Decode the token to get user information
+      const decodedToken = jwtDecode(token);
+      const userType = decodedToken.type.toLowerCase();
+
+      if (userType !== 'doctor') {
+        // If the user is not a patient or is not logged in, navigate to the login page
+        navigate('/login');
+      }
+    } catch (error) {
+
+    }
+  }, [navigate]);
+  const handleRescheduleAppointment = async (appointmentId) => {
+    try {
+      // Check if rescheduleDateTime is in the future
+      const rescheduleDate = new Date(rescheduleDateTime);
+      const currentDate = new Date();
+
+      if (rescheduleDate <= currentDate) {
+        alert('Please select a future date for rescheduling.');
+        return;
+      }
+
+      // Make an Axios POST request to reschedule the appointment
+      const response = await axios.post('http://localhost:3001/reschedule-appointment', {
+        appointmentId,
+        rescheduleDateTime,
+      });
+
+      if (response.status === 200) {
+        console.log('Appointment rescheduled successfully');
+        window.location.reload();
+      } else {
+        console.log('Failed to reschedule appointment');
+      }
+    } catch (error) {
+      console.error('An error occurred while rescheduling appointment:', error);
+    }
+  };
+  const handleCancelAppointment = (appointmentId) => {
+    // Implement the logic to cancel the appointment, e.g., make an Axios request
+    axios.post(`http://localhost:3001/cancel-appointment-doctor/${appointmentId}`)
+      .then(response => {
+        // Handle successful cancellation (e.g., update state or reload appointments)
+        console.log('Appointment canceled successfully');
       })
-  }, []);
-
+      .catch(error => {
+        // Handle error if cancellation fails
+        console.error('Error canceling appointment', error);
+      });
+  };
   useEffect(() => {
+    // Retrieve the authentication token from local storage
+    const token = localStorage.getItem('token');
+
+    // Check if the token is present
+    if (!token) {
+      console.error('User not authenticated');
+      return;
+    }
+
     // Make an Axios GET request to fetch the patient's appointments with doctor names and statuses
-    axios.get('http://localhost:3001/doctorsAppointments')
+    axios.get('http://localhost:3001/doctorsAppointments', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then(response => {
         setAppointments(response.data);
         setLoading(false);
@@ -74,6 +138,7 @@ function AppointmentsList() {
         setLoading(false);
       });
   }, []);
+
 
   const handleFollowUp = async (appointmentId) => {
     try {
@@ -170,7 +235,42 @@ function AppointmentsList() {
               <div>
                 <strong>Patient:</strong> {appointment.patientName}<br />
               </div>
-              {appointment.status === 'completed' && !appointment.followedUp &&  (
+              {
+                appointment.familyMember && (
+                  <div>
+                    <strong>For Family Memebr:</strong> {appointment.familyMember.name}<br />
+                  </div>
+                )
+              }
+              {appointment.status === 'scheduled' && (
+                <div>
+                  <button onClick={() => handleCancelAppointment(appointment._id)}>
+                    Cancel Appointment
+                  </button>
+                  <label>
+                    Reschedule Date:
+                    <input
+                      type="datetime-local"
+                      value={rescheduleDateTime}
+                      onChange={(e) => setRescheduleDateTime(e.target.value)}
+                    />
+                  </label>
+                  <button onClick={() => handleRescheduleAppointment(appointment._id)}>
+                    Reschedule Appointment
+                  </button>
+                </div>
+              )}
+              {appointment.status === 'completed' && !appointment.prescribed && (
+                <Link to={`/prescription/${appointment._id}`}>
+                  <button>Write Prescription</button>
+                </Link>
+              )}
+              {appointment.status === 'completed' && appointment.prescribed && (
+                <Link to={`/prescription/${appointment._id}`}>
+                  <button>Modify Prescription</button>
+                </Link>
+              )}
+              {appointment.status === 'completed' && !appointment.followedUp && (
                 <div>
                   <label>
                     Follow-up Date:

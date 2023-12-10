@@ -1,40 +1,82 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { jwtDecode } from "jwt-decode";
 
 function DoctorContract() {
     const [accepted, setAccepted] = useState(false);
     const navigate = useNavigate();
     useEffect(() => {
-        // Fetch admin data from the server
-        axios.get(`http://localhost:3001/get-user-type`).then((response) => {
-            const responseData = response.data;
-            if (responseData.type !== 'doctor' || responseData.in !== true) {
+        try {
+            // Get the token from local storage
+            const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+            if (!token) {
+                // If the token doesn't exist, navigate to the login page
                 navigate('/login');
-                return null;
+                return;
             }
-        });
-    }, []);
-    const handleAccept = () => {
-        axios.post('http://localhost:3001/accept-contract')
-            .then(() => {
-                setAccepted(true);
-                navigate('/patient');
-            })
-            .catch((error) => {
-                console.error('Error accepting contract:', error);
+
+            // Decode the token to get user information
+            const decodedToken = jwtDecode(token);
+            const userType = decodedToken.type.toLowerCase();
+
+            if (userType !== 'doctor') {
+                // If the user is not a patient or is not logged in, navigate to the login page
+                navigate('/login');
+            }
+        } catch (error) {
+
+        }
+    }, [navigate]);
+    const handleAccept = async () => {
+        try {
+            // Retrieve the token from local storage
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                console.error('User not authenticated');
+                return;
+            }
+
+            // Make an API call to accept the contract with the token in the headers
+            await axios.post('http://localhost:3001/accept-contract', null, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
             });
+
+            setAccepted(true);
+            navigate('/patient');
+        } catch (error) {
+            console.error('Error accepting contract:', error);
+        }
     };
 
-    const handleReject = () => {
-        axios.post('http://localhost:3001/reject-contract')
-            .then(() => {
-                navigate('/');
-            })
-            .catch((error) => {
-                console.error('Error rejecting contract:', error);
+
+    const handleReject = async () => {
+        try {
+            // Retrieve the token from local storage
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                console.error('User not authenticated');
+                return;
+            }
+
+            // Make an API call to reject the contract with the token in the headers
+            await axios.post('http://localhost:3001/reject-contract', null, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
             });
+
+            navigate('/');
+        } catch (error) {
+            console.error('Error rejecting contract:', error);
+        }
     };
+
 
     const containerStyle = {
         backgroundColor: '#f5f5f5',
@@ -90,7 +132,7 @@ function DoctorContract() {
                     <li>The clinic imposes a 10% markup fee on patients' bills for a profit.</li>
                     <li>You will provide medical services to patients under the terms of this contract.</li>
                     <li>You will follow all relevant laws and regulations in your medical practice.</li>
-                    {/* Add more terms as needed */}
+                    
                 </ul>
 
                 <p>Do you accept these terms and conditions?</p>

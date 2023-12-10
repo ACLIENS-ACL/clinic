@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+/*import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -48,7 +48,7 @@ function Signup() {
 
   const validatePassword = (password) => {
     // Password must contain at least one capital letter, one small letter, one special character, and one number.
-    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     return passwordPattern.test(password);
   };
 
@@ -218,7 +218,7 @@ function Signup() {
                         </select>
                       </div>
 
-                      {/* ID Document */}
+                      {/* ID Document }
                       <div className="mb-4">
                         <label htmlFor="idDocument" className="form-label">ID Document</label>
                         <input
@@ -230,20 +230,20 @@ function Signup() {
                         />
                       </div>
 
-                      {/* Medical License */}
-                      <div className="mb-4">
-                        <label htmlFor="medicalLicense" className="form-label">Medical License</label>
-                        <input
-                          id="medicalLicense"
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => setMedicalLicenses(e.target.files)}
-                          required
-                          multiple
-                        />
-                      </div>
+                      {/* Medical License}
+<div className="mb-4">
+  <label htmlFor="medicalLicense" className="form-label">Medical License</label>
+  <input
+    id="medicalLicense"
+    type="file"
+    accept=".pdf,.jpg,.jpeg,.png"
+    onChange={(e) => setMedicalLicenses(e.target.files)}
+    required
+    multiple
+  />
+</div>
 
-                      {/* Medical Degree */}
+{/* Medical Degree }
                       <div className="mb-4">
                         <label htmlFor="medicalDegree" className="form-label">Medical Degree</label>
                         <input
@@ -268,3 +268,191 @@ function Signup() {
 }
 
 export default Signup;
+*/
+import React, { useState, useEffect } from 'react';
+import { Model } from "survey-core";
+import { Survey } from "survey-react-ui";
+import "survey-core/defaultV2.min.css";
+import { themeJson } from "./theme";
+//import "./index.css";
+import { json } from "./json";
+import axios from 'axios';
+
+function SurveyComponent() {
+  const tempFileStorage = {};
+  const survey = new Model(json);
+  async function validation(_, { data, errors, complete }) {
+    const password = data["password"];
+    const userType = data["userType"];
+
+    if (userType === "Patient") {
+      const userData = {
+        username: data["username"],
+        name: data["full-name"],
+        email: data["email"],
+        password: data["password"],
+        dob: data["birthdate"],
+        gender: data["gender"],
+        mobileNumber: data["phone"],
+        emergencyContactName: data["emergency-contact-full-name"],
+        emergencyContactNumber: data["emergency-contact-phone"],
+        nationalID: data["nationalid"]
+      };
+      // Make an Axios call to check if the username and email already exist
+      try {
+        const response = await axios.post('http://localhost:3001/register-patient', userData);
+        alert(response.data.message);
+        // Check the response for any error and set the appropriate error message
+        if (response.data.message == "Username already exists") {
+          errors["username"] = response.data.message;
+
+        }
+        else if (response.data.message == "An account with the same phone number already exists") {
+          errors["phone"] = response.data.message;
+        }
+        else if (response.data.message == "An account with the same email already exists") {
+          errors["email"] = response.data.message;
+        }
+
+      } catch (error) {
+        // Handle any Axios request error (e.g., network issue)
+        console.error(error);
+        if (response.data.message == "Username already exists") {
+          errors["username"] = response.data.message;
+
+        }
+        else if (response.data.message == "An account with the same phone number already exists") {
+          errors["phone"] = response.data.message;
+        }
+        else if (response.data.message == "An account with the same email already exists") {
+          errors["email"] = response.data.message;
+        }
+      }
+    }
+    if (userType === "Doctor") {
+      const userData = {
+        username: data["username"],
+        name: data["full-name"],
+        email: data["email"],
+        password: data["password"],
+        dob: data["birthdate"],
+        gender: data["gender"],
+        mobileNumber: data["phone"],
+        hourlyRate: data["hourly-rate"],
+        affiliation: data["affiliation"],
+        educationalBackground: data["educational-background"],
+        specialty: data["selectedSpecialty"],
+      };
+      // Make an Axios call to check if the username and email already exist
+      try {
+        const response = await axios.post('http://localhost:3001/register-doctor', userData);
+        alert(response.data.message);
+        // Check the response for any error and set the appropriate error message
+        if (response.data.message == "Username already exists") {
+          errors["username"] = response.data.message;
+
+        }
+        else if (response.data.message == "An account with the same phone number already exists") {
+          errors["phone"] = response.data.message;
+        }
+        else if (response.data.message == "An account with the same email already exists") {
+          errors["email"] = response.data.message;
+        }
+
+        if (response.data.message === "completed") {
+          const formData = new FormData();
+          formData.append("idDocument", tempFileStorage["idDocument"]);
+          await axios.post(`http://localhost:3001/upload-id-document/${data["username"]}`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          const formData2 = new FormData();
+          formData2.append("medicalDegree", tempFileStorage["medicalDegree"]);
+          await axios.post(`http://localhost:3001/upload-medical-degree/${data["username"]}`, formData2, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          const formData3 = new FormData();
+          formData3.append("medicalLicenses", tempFileStorage["medicalLicenses"]);
+          await axios.post(`http://localhost:3001/upload-medical-licenses/${data["username"]}`, formData3, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+        }
+
+
+
+      } catch (error) {
+        // Handle any Axios request error (e.g., network issue)
+        console.error(error);
+
+      }
+    }
+    if (!password) {
+      errors["password"] = "Password is required.";
+    } else if (password.length < 8) {
+      errors["password"] = "Password must be at least 8 characters long.";
+    } else if (!/[A-Z]/.test(password)) {
+      errors["password"] = "Password must contain at least one uppercase letter.";
+    } else if (!/[a-z]/.test(password)) {
+      errors["password"] = "Password must contain at least one lowercase letter.";
+    } else if (!/[^a-zA-Z0-9]/.test(password)) {
+      errors["password"] = "Password must contain at least one special character.";
+    }
+
+
+    complete();
+  }
+
+  survey.applyTheme(themeJson);
+  survey.onComplete.add((sender, options) => {
+    console.log(JSON.stringify(sender.data, null, 3));
+  });
+
+
+  // Handles selected files
+  survey.onUploadFiles.add((_, options) => {
+    // Add files to the temporary storage
+    if (tempFileStorage[options.name] !== undefined) {
+      tempFileStorage[options.name].concat(options.files);
+    } else {
+      tempFileStorage[options.name] = options.files;
+    }
+    // Load file previews
+    const content = [];
+    options.files.forEach(file => {
+      const fileReader = new FileReader();
+      fileReader.onload = () => {
+        content.push({
+          name: file.name,
+          type: file.type,
+          content: fileReader.result,
+          file: file
+        });
+        if (content.length === options.files.length) {
+          // Return a file for preview as a { file, content } object 
+          options.callback(
+            "success",
+            content.map(fileContent => {
+              return {
+                file: fileContent.file,
+                content: fileContent.content
+              };
+            })
+          );
+        }
+      };
+      fileReader.readAsDataURL(file);
+    });
+  });
+
+  survey.onServerValidateQuestions.add(validation);
+
+
+  return (<Survey model={survey} />);
+}
+
+export default SurveyComponent;

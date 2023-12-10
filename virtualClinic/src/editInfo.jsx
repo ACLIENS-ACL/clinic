@@ -9,36 +9,66 @@ function EditInfo() {
     hourlyRate: 0,
     email: '',
   });
-
   useEffect(() => {
-    // Fetch the specific attributes (affiliation, hourlyRate, and email) from the doctor's information
-    axios.get(`http://localhost:3001/get-doctor-info`)
-      .then((response) => {
-        const { affiliation, hourlyRate, email } = response.data;
-        setDoctorInfo({ affiliation, hourlyRate, email });
+    try {
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+      if (!token) {
+        // If the token doesn't exist, navigate to the login page
+        navigate('/login');
+        return;
+      }
+
+      // Decode the token to get user information
+      const decodedToken = jwtDecode(token);
+      const userType = decodedToken.type.toLowerCase();
+
+      if (userType !== 'doctor') {
+        // If the user is not a patient or is not logged in, navigate to the login page
+        navigate('/login');
+      }
+    } catch (error) {
+
+    }
+  }, [navigate]);
+  useEffect(() => {
+    // Retrieve the token from local storage
+    const token = localStorage.getItem('token');
+
+    // Check if the token exists before making the request
+    if (token) {
+      // Make an Axios GET request to fetch the doctor's information
+      axios.get('http://localhost:3001/get-doctor-info', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
-      .catch((error) => console.error(error));
+        .then((response) => {
+          // Extract the specific attributes (affiliation, hourlyRate, and email) from the doctor's information
+          const { affiliation, hourlyRate, email } = response.data;
+
+          // Set the doctor's information in the state
+          setDoctorInfo({ affiliation, hourlyRate, email });
+        })
+        .catch((error) => console.error(error));
+    }
   }, []);
+
   const navigate = useNavigate();
   const handleChange = (e) => {
     const { name, value } = e.target;
     setDoctorInfo({ ...doctorInfo, [name]: value });
   };
-  useEffect(() => {
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`)
-      .then((response) => {
-        const responseData = response.data;
-        if (responseData.type.toLowerCase() !== "doctor" || responseData.in !== true) {
-          navigate('/login')
-          return null;
-        }
-      })
-  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     // Send a PUT request to update the specific attributes (affiliation, hourlyRate, and email)
-    axios.put(`http://localhost:3001/update-doctor-info`, doctorInfo)
+    axios.put(`http://localhost:3001/update-doctor-info`, doctorInfo, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then((response) => {
         alert("Info Updated Successfully")
       })
@@ -47,7 +77,7 @@ function EditInfo() {
 
   return (
     <div style={containerStyle}>
-      <Navbar/>
+      <Navbar />
       <h1>Edit Doctor Info</h1>
       <form onSubmit={handleSubmit}>
         <div style={inputContainerStyle}>

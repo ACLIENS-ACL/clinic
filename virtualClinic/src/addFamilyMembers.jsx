@@ -2,17 +2,47 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
+
 
 const styles = {
   form: {
-    maxWidth: '300px',
-    margin: '0 auto',
+    fontFamily: 'Arial, sans-serif',
+    maxWidth: '500px',
+    margin: 'auto',
+    padding: '20px',
+    marginTop: '50px',
+    border: '1px solid #ccc',
+    borderRadius: '5px',
+    boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
+  },
+  label: {
+    display: 'block',
+    marginBottom: '10px',
+  },
+  radioInput: {
+    marginRight: '5px',
   },
   input: {
     width: '100%',
-    marginBottom: '10px',
+    padding: '8px',
+    margin: '12px 0',
+    boxSizing: 'border-box',
+    borderRadius: '3px',
+    border: '1px solid #ccc',
+  },
+  button: {
+    backgroundColor: 'navy',
+    color: '#fff',
+    padding: '10px 15px',
+    border: 'none',
+    borderRadius: '20px', // Adjust the radius as needed
+    cursor: 'pointer',
+    display: 'block',
+    margin: 'auto',
   },
 };
+
 
 const AddFamilyMemberForm = () => {
   const [formData, setFormData] = useState({
@@ -31,33 +61,56 @@ const AddFamilyMemberForm = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get('http://localhost:3001/get-user-gender')
-      .then((response) => {
-        const gender = response.data.gender;
-        // Define relations based on gender
-        if (gender.toLowerCase() === 'male') {
-          setRelations(['Wife', 'Child']);
-        } else if (gender.toLowerCase() === 'female') {
-          setRelations(['Husband', 'Child']);
-        }
-      })
-      .catch((error) => {
-        // Handle errors
-        console.error('Error:', error);
-      });
+    try {
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
 
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`)
-      .then((response) => {
-        const responseData = response.data;
-        if (responseData.type.toLowerCase() !== "patient" || !responseData.in) {
-          navigate('/login');
-        }
-      })
-      .catch((error) => {
-        setError('An error occurred while fetching user data.');
-      });
+      if (!token) {
+        // If the token doesn't exist, navigate to the login page
+        navigate('/login');
+        return;
+      }
+
+      // Decode the token to get user information
+      const decodedToken = jwtDecode(token);
+      const userType = decodedToken.type.toLowerCase();
+
+      if (userType !== 'patient') {
+        // If the user is not a patient or is not logged in, navigate to the login page
+        navigate('/login');
+      }
+    } catch (error) {
+      setError('An error occurred while decoding the token.');
+    }
   }, [navigate]);
+
+  useEffect(() => {
+    // Retrieve the token from local storage
+    const token = localStorage.getItem('token');
+
+    if (token) {
+      // Use the token to send a request to get user gender
+      axios.get('http://localhost:3001/get-user-gender', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((response) => {
+          const gender = response.data.gender;
+          // Define relations based on gender
+          if (gender.toLowerCase() === 'male') {
+            setRelations(['Wife', 'Child']);
+          } else if (gender.toLowerCase() === 'female') {
+            setRelations(['Husband', 'Child']);
+          }
+        })
+        .catch((error) => {
+          // Handle errors
+          console.error('Error:', error);
+        });
+    }
+  }, []); // The empty dependency array ensures that this effect runs once after the initial render
+
 
   const handleInputChange = (event) => {
     const { name, value, type } = event.target;
@@ -71,7 +124,7 @@ const AddFamilyMemberForm = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
+    const token = localStorage.getItem('token');
     // Check if the patient wants to add a family member with an existing account
     if (formData.existingAccount) {
       // Handle adding a family member with an existing account (provide email or phone number)
@@ -87,6 +140,10 @@ const AddFamilyMemberForm = () => {
           email: formData.email,
           phone: formData.phone,
           relation: formData.relation,
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
         if (response.status === 200) {
           setMessage(response.data.message);
@@ -114,7 +171,11 @@ const AddFamilyMemberForm = () => {
 
       // Send a request to the server to add a family member without an existing account
       try {
-        const response = await axios.put('http://localhost:3001/update-family-member', formData);
+        const response = await axios.put('http://localhost:3001/update-family-member', formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (response.status === 200) {
           setMessage(response.data.message);
           setError('');
@@ -139,25 +200,28 @@ const AddFamilyMemberForm = () => {
   return (
     <div>
       <Navbar />
-      <h1>Add Family Member</h1>
+
       <form style={styles.form} onSubmit={handleSubmit}>
-        <label>
+        <h3>Add Family A Member</h3>
+        <label style={styles.label}>
           <input
             type="radio"
             name="existingAccount"
             value="false"
             checked={!formData.existingAccount}
             onChange={handleInputChange}
+            style={styles.radioInput}
           />
-          Add a family member with no existing Account
+          Add a family member with no existing account
         </label>
-        <label>
+        <label style={styles.label}>
           <input
             type="radio"
             name="existingAccount"
             value="true"
             checked={formData.existingAccount}
             onChange={handleInputChange}
+            style={styles.radioInput}
           />
           Use an existing account for the family member
         </label>
@@ -228,13 +292,20 @@ const AddFamilyMemberForm = () => {
           style={styles.input}
           required
         >
-          <option value="" disabled>Select Relation</option>
+          <option value="" disabled>
+            Select Relation
+          </option>
           {relations.map((rel, index) => (
-            <option key={index} value={rel}>{rel}</option>
+            <option key={index} value={rel}>
+              {rel}
+            </option>
           ))}
         </select>
-        <button type="submit">Add Family Member</button>
-      </form>
+        <button type="submit" style={styles.button}>
+          Add Family Member
+        </button>
+      </form>;
+
       {message && <p>{message}</p>}
       {error && <p>{error}</p>}
     </div>

@@ -2,30 +2,54 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
 
 function AppointmentForm() {
   const navigate = useNavigate();
-  useEffect(() => {
-      // Fetch admin data from the server
-      axios.get(`http://localhost:3001/get-user-type`).then((response) => {
-          const responseData = response.data;
-          if (responseData.type !== 'doctor' || responseData.in !== true) {
-              navigate('/login');
-              return null;
-          }
-      });
-  }, []);
+
   const [selectedDateTime, setSelectedDateTime] = useState('');
   const [appointments, setAppointments] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
+  useEffect(() => {
+    try {
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
 
-  const addAppointment = async (e) => {
+      if (!token) {
+        // If the token doesn't exist, navigate to the login page
+        navigate('/login');
+        return;
+      }
+
+      // Decode the token to get user information
+      const decodedToken = jwtDecode(token);
+      const userType = decodedToken.type.toLowerCase();
+
+      if (userType !== 'doctor') {
+        // If the user is not a patient or is not logged in, navigate to the login page
+        navigate('/login');
+      }
+    } catch (error) {
+
+    }
+  }, [navigate]);
+  const addAppointment = (e) => {
     e.preventDefault();
+
+
     if (selectedDateTime) {
       setErrorMessage(''); // Clear any existing error message
+
       const newAppointment = new Date(selectedDateTime);
-      setAppointments([...appointments, newAppointment]);
-      setSelectedDateTime('');
+
+      // Check if the selected appointment is greater than the current time
+      const currentTime = new Date();
+      if (newAppointment > currentTime) {
+        setAppointments([...appointments, newAppointment]);
+        setSelectedDateTime('');
+      } else {
+        setErrorMessage('Appointment must be scheduled for a future date and time.');
+      }
     } else {
       setErrorMessage('Datetime must be entered.');
     }
@@ -41,8 +65,15 @@ function AppointmentForm() {
     e.preventDefault();
 
     try {
-      // Send the list of appointments to your backend
-      await axios.post('http://localhost:3001/doctors/add-appointments', { appointments });
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+      // Send the list of appointments to your backend along with the token
+      await axios.post('http://localhost:3001/doctors/add-appointments', { appointments }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       // Clear the appointments list
       setAppointments([]);
@@ -62,7 +93,7 @@ function AppointmentForm() {
     border: '1px solid #ccc',
     borderRadius: '5px',
     background: '#f3f3f3',
-    width:'50%'
+    width: '50%'
   };
 
   const formStyle = {
@@ -95,7 +126,7 @@ function AppointmentForm() {
 
   return (
     <div style={containerStyle}>
-      <Navbar/>
+      <Navbar />
       <h1>Add Appointments</h1>
       <form style={formStyle}>
         <label>Appointment Slot:</label>
@@ -105,7 +136,7 @@ function AppointmentForm() {
           value={selectedDateTime}
           onChange={(e) => setSelectedDateTime(e.target.value)}
           style={inputStyle}
-          
+
         />
         <button onClick={addAppointment} style={buttonStyle}>
           Add Slot

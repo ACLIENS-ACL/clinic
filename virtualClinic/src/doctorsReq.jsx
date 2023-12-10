@@ -2,22 +2,17 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
 
 const containerStyles = {
-  maxWidth: '800px',
-  margin: '0 auto',
-  padding: '20px',
-  background: '#f8f9fa',
-  border: '1px solid #ced4da',
-  borderRadius: '5px',
-  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
 };
 
 const headerStyles = {
   fontSize: '24px',
   fontWeight: 'bold',
-  color: '#007BFF',
+  color: 'navy',
   marginBottom: '20px',
+  textAlign: 'center'
 };
 
 const listItemStyles = {
@@ -72,16 +67,28 @@ function DoctorRequests() {
   const [requests, setRequests] = useState([]);
   const [message, setMessage] = useState('');
   useEffect(() => {
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`)
-      .then((response) => {
-        const responseData = response.data;
-        if (responseData.type.toLowerCase() !== "admin" || responseData.in !== true) {
-          navigate('/login')
-          return null;
-        }
-      })
-  }, []);
+    try {
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+      if (!token) {
+        // If the token doesn't exist, navigate to the login page
+        navigate('/login');
+        return;
+      }
+
+      // Decode the token to get user information
+      const decodedToken = jwtDecode(token);
+      const userType = decodedToken.type.toLowerCase();
+
+      if (userType !== 'admin') {
+        // If the user is not a patient or is not logged in, navigate to the login page
+        navigate('/login');
+      }
+    } catch (error) {
+
+    }
+  }, [navigate]);
   useEffect(() => {
     // Fetch doctor requests from the server
     axios.get('http://localhost:3001/doctor-requests')
@@ -123,62 +130,113 @@ function DoctorRequests() {
   return (
     <div style={containerStyles}>
       <Navbar />
+      <br></br>
       <h2 style={headerStyles}>Doctor Requests</h2>
       {message && <div className="alert alert-danger">{message}</div>}
-      <ul>
+      <ul style={{ width: '50%', margin: 'auto', listStyleType: 'none' }}>
         {requests.map((request) => (
           <li key={request._id} style={listItemStyles}>
             <strong>Name:</strong> {request.name}<br />
             <strong>Specialization:</strong> {request.specialty === 'extraNotes' ? 'Professional Experience' : request.specialty}<br />
-            <strong>Other Properties:</strong>
-            <ul>
-              {Object.keys(request)
-                .filter(
-                  (key) =>
-                    key !== 'password' &&
-                    key !== 'enrolled' &&
-                    key !== '__v' &&
-                    key !== '_id' &&
-                    key !== 'availableSlots' &&
-                    key !== 'username'
-                )
-                .map((key) => (
-                  <li key={key}>
-                    {key === 'extraNotes' ? 'Professional Experience' : key === 'idDocument' ? 'ID Document' : key ==='medicalDegree'? 'Medical Degree' : key ==='medicalLicenses'? 'Medical Licenses' : key}:
-                    {key === 'dob'
-                      ? new Date(request[key]).toISOString().split('T')[0]
-                      : key === 'idDocument' ? (
-                        <a href="#" onClick={() => handleClick(request.idDocument.fileName)}>
-                          View Document
-                        </a>
-                      ) : key === 'medicalDegree' ? (
-                        <a href="#" onClick={() => handleClick(request.medicalDegree.fileName)}>
-                          View Medical Degree
-                        </a>
-                      ) : key === 'medicalLicenses' ? (
-                        <ul>
-                          {request.medicalLicenses.map((license, index) => (
-                            <li key={index}>
-                              <a href="#" onClick={() => handleClick(license.fileName)}>
-                                View License {index + 1}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        request[key]
-                      )}
-                  </li>
-                ))}
 
-            </ul>
-            <button style={buttonStyles} onClick={() => handleApprove(request._id)}>Approve</button>
-            <button style={rejectButtonStyles} onClick={() => handleReject(request._id)}>Reject</button>
+            {Object.keys(request)
+              .filter(
+                (key) =>
+                  key !== 'password' &&
+                  key !== 'enrolled' &&
+                  key !== '__v' &&
+                  key !== '_id' &&
+                  key !== 'availableSlots' &&
+                  key !== 'username' &&
+                  key !== 'wallet' &&
+                  key !== 'userType' &&
+                  key !== 'extraNotes'
+              )
+              .map((key) => (
+                <li key={key}>
+                  <strong>
+                    {key === 'extraNotes'
+                      ? 'Professional Experience'
+                      : key === 'idDocument'
+                        ? 'ID Document'
+                        : key === 'medicalDegree'
+                          ? 'Medical Degree'
+                          : key === 'medicalLicenses'
+                            ? 'Medical Licenses'
+                            : key === 'educationalBackground' ? 'Educational Background' : capitalizeFirstLetter(key)}
+                  </strong>:{' '}
+                  {key === 'dob' ? (
+                    new Date(request[key]).toISOString().split('T')[0]
+                  ) : key === 'idDocument' ? (
+                    <a href="#" onClick={() => handleClick(request.idDocument.fileName)}>
+                      View Document
+                    </a>
+                  ) : key === 'medicalDegree' ? (
+                    <a href="#" onClick={() => handleClick(request.medicalDegree.fileName)}>
+                      View Medical Degree
+                    </a>
+                  ) : key === 'medicalLicenses' ? (
+                    <ul style={{ listStyleType: 'none' }}>
+                      {request.medicalLicenses.map((license, index) => (
+                        <li key={index}>
+                          <a href="#" onClick={() => handleClick(license.fileName)}>
+                            View License {index + 1}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    request[key]
+                  )}
+                </li>
+
+              ))}
+
+
+            <button
+              style={{
+                marginRight: '10px',
+                width: '80px',
+                backgroundColor: 'gray',
+                color: 'white',
+                border: 'none',
+                padding: '5px 10px',
+                borderRadius: '3px',
+                cursor: 'pointer',
+              }}
+              onClick={() => handleApprove(request._id)}
+              onMouseEnter={(e) => e.target.style.backgroundColor = 'green'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'gray'}
+            >
+              Approve
+            </button>
+
+            <button
+              style={{
+                backgroundColor: 'gray',
+                width: '80px',
+                color: 'white',
+                border: 'none',
+                padding: '5px 10px',
+                borderRadius: '3px',
+                cursor: 'pointer',
+              }}
+              onClick={() => handleReject(request._id)}
+              onMouseEnter={(e) => e.target.style.backgroundColor = 'crimson'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'gray'}
+            >
+              Reject
+            </button>
+
           </li>
         ))}
       </ul>
     </div>
   );
 }
+function capitalizeFirstLetter(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 
 export default DoctorRequests;

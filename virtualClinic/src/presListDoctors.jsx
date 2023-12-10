@@ -1,0 +1,249 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
+
+function PrescriptionList() {
+    const navigate = useNavigate();
+    useEffect(() => {
+        try {
+            // Get the token from local storage
+            const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+            if (!token) {
+                // If the token doesn't exist, navigate to the login page
+                navigate('/login');
+                return;
+            }
+
+            // Decode the token to get user information
+            const decodedToken = jwtDecode(token);
+            const userType = decodedToken.type.toLowerCase();
+
+            if (userType !== 'doctor') {
+                // If the user is not a patient or is not logged in, navigate to the login page
+                navigate('/login');
+            }
+        } catch (error) {
+
+        }
+    }, [navigate]);
+    const [prescriptions, setPrescriptions] = useState([]);
+    const [filteredPrescriptions, setFilteredPrescriptions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [selectedPrescription, setSelectedPrescription] = useState(null);
+    const [filterOption, setFilterOption] = useState('all'); // Initialize with 'all'
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        alert(token);
+        axios
+            .get('http://localhost:3001/get-doctor-prescriptions', {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+            .then((response) => {
+                setPrescriptions(response.data);
+                setFilteredPrescriptions(response.data); // Initialize filteredPrescriptions with all prescriptions
+                setLoading(false);
+            })
+            .catch((error) => {
+                setError(error);
+                setLoading(false);
+            });
+    }, []);
+
+    const containerStyle = {
+        fontFamily: 'Arial, sans-serif',
+        maxWidth: '800px',
+        margin: '0 auto',
+        padding: '20px',
+        backgroundColor: '#f4f4f4',
+        borderRadius: '10px',
+        boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
+    };
+
+    const headingStyle = {
+        fontSize: '28px',
+        marginBottom: '20px',
+        color: '#333',
+    };
+
+    const listItemStyle = {
+        marginBottom: '20px',
+        padding: '15px',
+        backgroundColor: '#fff',
+        borderRadius: '5px',
+        boxShadow: '0 0 5px rgba(0, 0, 0, 0.1)',
+        cursor: 'pointer',
+        position: 'relative',
+    };
+
+    const detailsStyle = {
+        position: 'absolute',
+        top: '100%',
+        left: '0',
+        backgroundColor: 'lightgray',
+        borderRadius: '5px',
+        boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
+        padding: '20px',
+        display: selectedPrescription ? 'block' : 'none',
+        zIndex: 1,
+    };
+
+    const handlePrescriptionSelect = (prescription) => {
+        if (selectedPrescription === prescription) {
+            setSelectedPrescription(null); // Deselect if already selected
+        } else {
+            setSelectedPrescription(prescription);
+        }
+    };
+
+    const handleFilterChange = (e) => {
+        const selectedOption = e.target.value;
+        setFilterOption(selectedOption);
+
+        // Apply filtering based on the selected filter option
+        filterPrescriptions(selectedOption, startDate, endDate);
+    };
+
+    const handleStartDateChange = (e) => {
+        const newStartDate = e.target.value;
+        setStartDate(newStartDate);
+
+        // Apply filtering based on the selected filter options
+        filterPrescriptions(filterOption, newStartDate, endDate);
+    };
+
+    const handleEndDateChange = (e) => {
+        const newEndDate = e.target.value;
+        setEndDate(newEndDate);
+
+        // Apply filtering based on the selected filter options
+        filterPrescriptions(filterOption, startDate, newEndDate);
+    };
+
+    const handleClear = () => {
+        setStartDate('');
+        setEndDate('');
+        // Clear both start and end date inputs
+        filterPrescriptions('all', '', ''); // Reset the filter
+    };
+
+    const filterPrescriptions = (status, startDate, endDate) => {
+        // Apply filtering based on the selected filter options
+        let filteredPrescriptionList = prescriptions;
+
+        if (status === 'filled') {
+            filteredPrescriptionList = filteredPrescriptionList.filter(
+                (p) => p.filled
+            );
+        } else if (status === 'unfilled') {
+            filteredPrescriptionList = filteredPrescriptionList.filter(
+                (p) => !p.filled
+            );
+        }
+
+        if (startDate) {
+            const startTimestamp = new Date(startDate).getTime();
+            filteredPrescriptionList = filteredPrescriptionList.filter(
+                (p) => {
+                    const prescriptionTimestamp = new Date(p.date).getTime();
+                    return prescriptionTimestamp >= startTimestamp;
+                }
+            );
+        }
+
+        if (endDate) {
+            const endTimestamp = new Date(endDate).getTime();
+            filteredPrescriptionList = filteredPrescriptionList.filter(
+                (p) => {
+                    const prescriptionTimestamp = new Date(p.date).getTime();
+                    return prescriptionTimestamp < endTimestamp + 24 * 60 * 60 * 1000;
+                }
+            );
+        }
+
+        setFilteredPrescriptions(filteredPrescriptionList);
+    };
+
+    return (
+        <div style={containerStyle}>
+            <Navbar />
+            <h1 style={headingStyle}>Prescriptions</h1>
+            <div>
+                <label htmlFor="filter">Filter by status:</label>
+                <select id="filter" value={filterOption} onChange={handleFilterChange}>
+                    <option value="all">All</option>
+                    <option value="filled">Filled</option>
+                    <option value="unfilled">Unfilled</option>
+                </select>
+            </div>
+            <div style={{ display: 'flex' }}>
+                <div>
+                    <label htmlFor="startDate">Start Date:</label>
+                    <input
+                        type="date"
+                        id="startDate"
+                        value={startDate}
+                        onChange={handleStartDateChange}
+                    />
+                </div>
+                <div>
+                    <label htmlFor="endDate">End Date:</label>
+                    <input
+                        type="date"
+                        id="endDate"
+                        value={endDate}
+                        onChange={handleEndDateChange}
+                    />
+                </div>
+                <button onClick={handleClear}>Clear</button> {/* Single "Clear" button */}
+            </div>
+            {filteredPrescriptions.length === 0 ? (
+                <p>No prescriptions found.</p>
+            ) : (
+                <ul>
+                    {filteredPrescriptions.map((prescription) => (
+                        <li
+                            key={prescription._id}
+                            style={listItemStyle}
+                            onClick={() => handlePrescriptionSelect(prescription)}
+                        >
+                            <h2>Date: {new Date(prescription.date).toLocaleString()}</h2>
+                            <p>Status: {prescription.filled ? 'filled' : 'not filled'}</p>
+                            {selectedPrescription === prescription && (
+                                <div style={detailsStyle}>
+                                    <h2>Prescription Details</h2>
+                                    <p>Patient Name: {selectedPrescription.patientName}</p>
+                                    <p>Medicines:</p>
+                                    <ul>
+                                        {selectedPrescription.medicines.map((medicine, index) => (
+                                            <li key={index}>
+                                                <p>Name: {medicine.name}</p>
+                                                <p>Dose: {medicine.dose.daily} times per day  for {medicine.dose.days} day(s)</p>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <p>Download Prescription as PDF:
+                                        <a href={`http://localhost:3001/uploads/${encodeURIComponent(selectedPrescription.fileName)}`} download>
+                                            Download Link
+                                        </a>
+                                    </p>
+                                </div>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
+
+export default PrescriptionList;
+
