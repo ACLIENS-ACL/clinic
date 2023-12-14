@@ -22,7 +22,7 @@ const UsersSchema = new mongoose.Schema({
   educationalBackground: String,
   enrolled: {
     type: String,
-    default: 'Request Not Made', // Set the default value to 'Request Not Made'
+    default: 'Pending', // Set the default value to 'Request Not Made'
     enum: ['Approved','PendingContract', 'Rejected', 'Pending', 'Request Not Made'], // Define valid enum values
   },
   extraNotes:{

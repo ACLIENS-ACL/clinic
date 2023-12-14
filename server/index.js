@@ -275,7 +275,7 @@ app.post('/register-patient', async(req, res) => {
   const existingPatientUsername= await PatientsModel.findOne({ username: userData.username.toLowerCase() })
   const existingDoctorUsername=await DoctorsModel.findOne({ email: userData.username.toLowerCase() })
   const existingAdminUsername=await AdminsModel.findOne({ email: userData.username.toLowerCase() })
-  console.log(userData)
+
   if (existingPatientEmail || existingDoctorEmail || existingAdminEmail){
     return res.json({ message: 'An account with the same email already exists' });
   }
@@ -371,7 +371,6 @@ app.post('/upload-id-document/:username', upload.single('idDocument'), (req, res
 app.post('/upload-medical-licenses/:username', upload.single('medicalLicenses'), (req, res) => {
   const username = req.params.username;
   const medicalLicenses = req.file;
-  console.log(medicalLicenses);
 
   // Check if a doctor with the given username exists in the DoctorsModel
   DoctorsModel.findOne({ username: username })
@@ -2440,7 +2439,7 @@ app.get('/myPatients', async (req, res) => {
   try {
     const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
     const doctor = await DoctorsModel.findOne({ username: decoded.username });
-    console.log(decoded.username)
+
     if (!doctor) {
       return res.status(404).json({ error: 'Doctor not found' });
     }
@@ -2495,7 +2494,6 @@ app.get('/myPatients', async (req, res) => {
 });
 
 app.get('/myDoctors', async (req, res) => {
-  console.log("hello");
   const token = req.header('Authorization');
 
   if (!token) {
@@ -2550,7 +2548,7 @@ app.get('/myDoctors', async (req, res) => {
     };
 
     const filteredPatientsInfo = filterUniquePatients(doctorsInfo);
-    console.log(doctorsInfo);
+
     return res.json(doctorsInfo);
   } catch (error) {
     console.error('Error fetching myPatients:', error);
@@ -2669,7 +2667,6 @@ app.post('/cancel-appointment-doctor/:id', async (req, res) => {
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
     }
-console.log(appointment.status);
     // Check if the appointment is scheduled
     if (appointment.status !== 'scheduled') {
       return res.status(400).json({ message: 'Cannot cancel appointment with status other than scheduled' });
@@ -3008,7 +3005,6 @@ app.get('/patientName',async(req,res)=>{
 app.post('/patientDiscount',async(req,res)=>{
   const token = req.header('Authorization');
   const { prescriptionID } = req.body;
-  console.log(prescriptionID);
   if (!token) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
@@ -3025,7 +3021,7 @@ app.post('/patientDiscount',async(req,res)=>{
   }
   else {
     const familyMember = patient.familyMembers.find(member => member.name.toString() === appointment.familyMember.name.toString());
-    console.log(familyMember)
+  
     if (!familyMember) {
       return res.status(404).json({ message: 'Family member not found' });
     }
