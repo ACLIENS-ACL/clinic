@@ -93,6 +93,7 @@ io.on('connection', (socket) => {
       });
 
     socket.on('send-chat-message', ({ message, userId, roomId }) => {
+
         // Broadcast the message to all users in the room
         if(activeUsers[userId]){
         socket.to(roomId).emit('chat-message', { name: activeUsers[userId].name, message, userId, roomId });
@@ -778,7 +779,7 @@ app.get('/get-my-patients', async (req, res) => {
     }
 
     // Find all appointments for the doctor
-    const appointments = await AppointmentsModel.find({ doctor: doctor._id });
+    const appointments = await AppointmentsModel.find({ doctor: doctor._id, cancelled: 'false' });
 
     // Extract unique patient IDs from the appointments
     const patientIds = Array.from(new Set(appointments.map(appointment => appointment.patient)));
