@@ -168,18 +168,19 @@ function DoctorRequests() {
                   {key === 'dob' ? (
                     new Date(request[key]).toISOString().split('T')[0]
                   ) : key === 'idDocument' ? (
-                    <a href="#" onClick={() => handleClick(request.idDocument.fileName)}>
-                      View Document
+                    <a href={`http://localhost:3001/uploads/${request.idDocument.fileName}`}  rel="noopener noreferrer">
+                      View ID Document
                     </a>
+
                   ) : key === 'medicalDegree' ? (
-                    <a href="#" onClick={() => handleClick(request.medicalDegree.fileName)}>
+                    <a href={`http://localhost:3001/uploads/${request.medicalDegree.fileName}`} rel="noopener noreferrer">
                       View Medical Degree
                     </a>
                   ) : key === 'medicalLicenses' ? (
                     <ul style={{ listStyleType: 'none' }}>
                       {request.medicalLicenses.map((license, index) => (
                         <li key={index}>
-                          <a href="#" onClick={() => handleClick(license.fileName)}>
+                          <a href={`http://localhost:3001/uploads/${license.fileName}`} >
                             View License {index + 1}
                           </a>
                         </li>

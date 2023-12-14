@@ -4,7 +4,7 @@ export const json = {
     "logo": "https://api.surveyjs.io/private/Surveys/files?name=09b0ee2a-d256-4376-b328-8be12d868f14",
     "logoWidth": "auto",
     "logoHeight": "96",
-    "completedHtml": "<div style=\"max-width:540px;text-align:left;margin:0px auto 16px auto;border: 1px solid rgba(0,0,0,0.25);padding:40px 48px 48px 48px;background-color:#fff;\">\n\n<h4>Thank you for completing your {userType} registration form.</h4>\n<br>\n<p>Dear {firstname-for-complete-page},\n<br>\nYour information has been successfully received, and we look forward to providing you with the highest level of care. \n<br><br>\n{additionalMessage}\n<br><br>\nIf you have any questions, please don't hesitate to reach out to our office. Our team is here to assist you every step of the way.\n<br><br>\nWarm regards,\n<br>\nCentral Hospital.</p>\n\n</div>",    "pages": [
+    "completedHtml": "<div style=\"max-width:540px;text-align:left;margin:0px auto 16px auto;border: 1px solid rgba(0,0,0,0.25);padding:40px 48px 48px 48px;background-color:#fff;\">\n\n<h4>Thank you for completing your {userType} registration form.</h4>\n<br>\n<p>Dear {firstname-for-complete-page},\n<br>\nYour information has been successfully received, and we look forward to providing you with the highest level of care. \n<br><br>\n {additionalMessage} \n<br><br>\nIf you have any questions, please don't hesitate to reach out to our office. Our team is here to assist you every step of the way.\n<br><br>\nWarm regards,\n<br>\nCentral Hospital.</p>\n\n</div>",    "pages": [
       {
         "name": "page0",
         "elements":[
@@ -161,6 +161,7 @@ export const json = {
               },
               {
                 "type": "text",
+                "inputType": "password",
                 "name": "password",
                 "width": "50%",
                 "isRequired": true,
@@ -262,7 +263,7 @@ export const json = {
     },
     {
       "name": "additionalMessage",
-      "expression": "userType === 'Doctor' ? 'The admin will review your request, and you will guarantee access to the system upon approval.' : ''"
+      "expression": "iif({userType} == 'Doctor', 'The admin will review your request, and you will guarantee access to the system upon approval.', ''"
     }],
     "showQuestionNumbers": "off",
     "questionErrorLocation": "bottom",

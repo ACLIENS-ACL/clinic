@@ -45,7 +45,7 @@ function AdminDashboard() {
       // Decode the token to get user information
       const decodedToken = jwtDecode(token);
       const userType = decodedToken.type.toLowerCase();
-      alert(userType);
+
       if (!userType || userType !== 'patient') {
         // If the user is not a patient or is not logged in, navigate to the login page
         navigate('/login');

@@ -148,8 +148,6 @@ function AppointmentsList() {
         alert('Please select a future date for rescheduling.');
         return;
       }
-      alert(rescheduleAppointmentId);
-      alert(rescheduleDateTime);
       // Make an Axios POST request to reschedule the appointment
       const response = await axios.post('http://localhost:3001/reschedule-appointment', {
         rescheduleAppointmentId,

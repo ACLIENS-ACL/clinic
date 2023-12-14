@@ -389,21 +389,45 @@ function Navbar() {
                                 onClick={goBack}
                             />
                         </div>
+                        {(userType === 'patient') && (
                         <div className="nav-item">
-                            <Link to="/home">
+                            <Link to="/patient">
                                 <AiOutlineHome
                                     size={30}
                                     style={{ color: 'white', cursor: 'pointer', marginRight: '20px' }}
                                 />
                             </Link>
                         </div>
+                        )}
+                        {(userType === 'doctor') && (
                         <div className="nav-item">
-                            <AiOutlineBell
-                                size={30}
-                                style={{ color: 'white', cursor: 'pointer', marginRight: '20px' }}
-                                onClick={showMultipleNotifications}
-                            />
+                            <Link to="/doctor">
+                                <AiOutlineHome
+                                    size={30}
+                                    style={{ color: 'white', cursor: 'pointer', marginRight: '20px' }}
+                                />
+                            </Link>
                         </div>
+                        )}
+                        {(userType === 'admin') && (
+                        <div className="nav-item">
+                            <Link to="/admin">
+                                <AiOutlineHome
+                                    size={30}
+                                    style={{ color: 'white', cursor: 'pointer', marginRight: '20px' }}
+                                />
+                            </Link>
+                        </div>
+                        )}
+                        {(userType === 'patient' || userType === 'doctor') && (
+                            <div className="nav-item">
+                                <AiOutlineBell
+                                    size={30}
+                                    style={{ color: 'white', cursor: 'pointer', marginRight: '20px' }}
+                                    onClick={showMultipleNotifications}
+                                />
+                            </div>
+                        )}
                         <div className="nav-item">
                             <AiOutlineLogout
                                 size={30}
@@ -423,7 +447,7 @@ function Navbar() {
 
                         })}
                         {(userType === 'patient' || userType === 'doctor') && (
-                            <div className="wallet-value" style={{ display: 'flex', alignItems: 'center', marginLeft: '20px', color: 'white', marginTop:'10px' }}>
+                            <div className="wallet-value" style={{ display: 'flex', alignItems: 'center', marginLeft: '20px', color: 'white', marginTop: '10px' }}>
                                 <FaIcons.FaWallet className="wallet-icon" style={{ fontSize: '1.1em', marginRight: '15px' }} />
                                 <div style={{ marginTop: '-2px' }}>${walletValue}</div>
                             </div>

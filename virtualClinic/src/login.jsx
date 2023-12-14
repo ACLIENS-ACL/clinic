@@ -53,6 +53,8 @@ const LandingPage = () => {
   const [password, setPassword] = useState('');
   const [errorUsername, setErrorUsername] = useState('');
   const [errorPassword, setErrorPassword] = useState('');
+  const [isButtonClicked, setIsButtonClicked] = useState(false);
+
   const navigate = useNavigate();
   const handleNavigation = async (e) => {
     if (username) {
@@ -61,6 +63,11 @@ const LandingPage = () => {
     else {
       navigate('/register')
     }
+  };
+  const handleButtonClick = () => {
+    // Toggle the state to track the button click
+    setIsButtonClicked(true);
+    alert("Please login to make an appointment")
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -85,9 +92,7 @@ const LandingPage = () => {
         localStorage.setItem('token', token);
 
         if (message === 'Success But Not Enrolled') {
-          const { token2 } = result.data;
-          localStorage.setItem('token', token2);
-          navigate('/makeReq');
+          alert('Your employment request is still under processing')
         } else if (message === 'Waiting for contract') {
           navigate('/contract');
         } else if (message === 'Success' || message === 'success') {
@@ -95,9 +100,19 @@ const LandingPage = () => {
           if (decodedToken.type.toLowerCase() === 'admin') {
             navigate('/admin');
           } else if (decodedToken.type.toLowerCase() === 'doctor') {
-            navigate('/doctor');
+            if (isButtonClicked) {
+              navigate('/myDAppointments')
+            }
+            else {
+              navigate('/doctor');
+            }
           } else if (decodedToken.type.toLowerCase() === 'patient') {
-            navigate('/patient');
+            if (isButtonClicked) {
+              navigate('/listdoctors')
+            }
+            else {
+              navigate('/patient');
+            }
           } else {
             navigate('/register');
           }
@@ -106,9 +121,10 @@ const LandingPage = () => {
           setErrorUsername(message);
           setErrorPassword('');
         }
-        else if (message === "Password incorrect")
+        else if (message === "Password incorrect") {
           setErrorUsername("");
-        setErrorPassword(message);
+          setErrorPassword(message);
+        }
       }
     } catch (err) {
       console.log(err);
@@ -179,10 +195,10 @@ const LandingPage = () => {
               <input
                 type="text"
                 className={`form-control form-control-sm me-2 ${errorUsername ? 'is-invalid' : ''}`}
-                style={{ maxWidth: '120px', borderColor: errorUsername ? 'red' : '' }}
+                style={{ maxWidth: '120px', borderColor: errorUsername ? 'red' : '', border: isButtonClicked ? '2px solid navy' : '1px solid lightgray' }}
                 placeholder="Username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
               />
 
               <input
@@ -216,6 +232,7 @@ const LandingPage = () => {
               >
                 {username ? "Forgot Password?" : "Don't have an Account?"}
               </a>
+
             </div>
           </nav>
         </div>
@@ -230,7 +247,7 @@ const LandingPage = () => {
               <div className="col-md-7 col-xl-6 col-xxl-5 text-md-start text-center py-6">
                 <h1 className="fw-light font-base fs-6 fs-xxl-7">We're <strong>determined</strong> for<br />your&nbsp;<strong>better life.</strong></h1>
                 <p className="fs-1 mb-5">You can get the care you need 24/7 – be it online or in <br />person. You will be treated by caring specialist doctors. </p>
-                <a className="btn btn-lg btn-primary rounded-pill" href="#!" role="button">Make an Appointment</a>
+                <a className="btn btn-lg btn-primary rounded-pill" href="#!" role="button" onClick={handleButtonClick}>Make an Appointment</a>
               </div>
             </div>
           </div>
@@ -439,11 +456,11 @@ const LandingPage = () => {
                 <h5 class="lh-lg fw-bold text-light mb-4 font-sans-serif"> Customer Care</h5>
                 <ul className="list-unstyled mb-md-4 mb-lg-0">
                   <li className="lh-lg">
-                    <FaEnvelope style={{ color: '#B2DDED', marginRight:'5px' }} />
+                    <FaEnvelope style={{ color: '#B2DDED', marginRight: '5px' }} />
                     <a className="footer-link" href="mailto:info@gmail.com">info@gmail.com</a>
                   </li>
                   <li className="lh-lg">
-                    <FaPhoneAlt style={{ color: '#B2DDED', marginRight:'5px' }} />
+                    <FaPhoneAlt style={{ color: '#B2DDED', marginRight: '5px' }} />
                     <a className="footer-link" href="tel:+20123456789">+20123456789</a>
                   </li>
                 </ul>

@@ -132,7 +132,7 @@ function AppointmentsList() {
   }, [navigate]);
 
   const handleCancelAppointment = (appointmentId) => {
-    alert(appointmentId);
+
     axios.post(`http://localhost:3001/cancel-appointment/${appointmentId}`)
       .then(response => {
         // Handle successful cancellation (e.g., update state or reload appointments)
@@ -168,7 +168,6 @@ function AppointmentsList() {
 
   const handleRescheduleAppointment = async () => {
     try {
-      alert(selectedSlot);
       // Make an Axios POST request to reschedule the appointment with the selected slot
       const response = await axios.post('http://localhost:3001/reschedule-appointment-patient', {
         appointmentId: rescheduleAppointmentId,

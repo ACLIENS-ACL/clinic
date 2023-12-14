@@ -71,7 +71,6 @@ function PatientList() {
       });
   };
   const handleHealthRecordClick = (filePath) => {
-    alert(filePath);
     const fileName = filePath.split('\\').pop();
     axios.get(`http://localhost:3001/uploads/${fileName}`, { responseType: 'blob' })
       .then(response => {
@@ -241,7 +240,7 @@ function PatientList() {
                       <div>
                         <button
                           onClick={(e) => handleAddRecordClick(e)}
-                          onMouseEnter={(e) => showAddRecordForm? e.target.style.backgroundColor = 'crimson':e.target.style.backgroundColor = '#0056b3'}
+                          onMouseEnter={(e) => showAddRecordForm ? e.target.style.backgroundColor = 'crimson' : e.target.style.backgroundColor = '#0056b3'}
                           onMouseLeave={(e) => e.target.style.backgroundColor = 'gray'}
                           style={{
                             padding: '8px',

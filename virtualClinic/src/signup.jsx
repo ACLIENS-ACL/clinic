@@ -301,7 +301,7 @@ function SurveyComponent() {
       // Make an Axios call to check if the username and email already exist
       try {
         const response = await axios.post('http://localhost:3001/register-patient', userData);
-        alert(response.data.message);
+
         // Check the response for any error and set the appropriate error message
         if (response.data.message == "Username already exists") {
           errors["username"] = response.data.message;
@@ -331,7 +331,7 @@ function SurveyComponent() {
     }
     if (userType === "Doctor") {
       const userData = {
-        username: data["username"],
+        username: data["username"].toLowerCase(),
         name: data["full-name"],
         email: data["email"],
         password: data["password"],
@@ -346,7 +346,7 @@ function SurveyComponent() {
       // Make an Axios call to check if the username and email already exist
       try {
         const response = await axios.post('http://localhost:3001/register-doctor', userData);
-        alert(response.data.message);
+
         // Check the response for any error and set the appropriate error message
         if (response.data.message == "Username already exists") {
           errors["username"] = response.data.message;
@@ -362,21 +362,22 @@ function SurveyComponent() {
         if (response.data.message === "completed") {
           const formData = new FormData();
           formData.append("idDocument", tempFileStorage["idDocument"]);
-          await axios.post(`http://localhost:3001/upload-id-document/${data["username"]}`, formData, {
+          await axios.post(`http://localhost:3001/upload-id-document/${data["username"].toLowerCase()}`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
           });
           const formData2 = new FormData();
           formData2.append("medicalDegree", tempFileStorage["medicalDegree"]);
-          await axios.post(`http://localhost:3001/upload-medical-degree/${data["username"]}`, formData2, {
+
+          await axios.post(`http://localhost:3001/upload-medical-degree/${data["username"].toLowerCase()}`, formData2, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
           });
           const formData3 = new FormData();
           formData3.append("medicalLicenses", tempFileStorage["medicalLicenses"]);
-          await axios.post(`http://localhost:3001/upload-medical-licenses/${data["username"]}`, formData3, {
+          await axios.post(`http://localhost:3001/upload-medical-licenses/${data["username"].toLowerCase()}`, formData3, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
@@ -417,9 +418,9 @@ function SurveyComponent() {
   survey.onUploadFiles.add((_, options) => {
     // Add files to the temporary storage
     if (tempFileStorage[options.name] !== undefined) {
-      tempFileStorage[options.name].concat(options.files);
+      tempFileStorage[options.name].concat(options.files[0]);
     } else {
-      tempFileStorage[options.name] = options.files;
+      tempFileStorage[options.name] = options.files[0];
     }
     // Load file previews
     const content = [];
