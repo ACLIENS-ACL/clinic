@@ -2440,7 +2440,7 @@ app.get('/myPatients', async (req, res) => {
   try {
     const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
     const doctor = await DoctorsModel.findOne({ username: decoded.username });
-
+    console.log(decoded.username)
     if (!doctor) {
       return res.status(404).json({ error: 'Doctor not found' });
     }
@@ -2605,7 +2605,7 @@ app.post('/cancel-appointment/:id', async (req, res) => {
     }
 
     // Check if the appointment is scheduled
-    if (appointment.status !== 'scheduled') {
+    if (!(appointment.status === 'scheduled')) {
       return res.status(400).json({ message: 'Cannot cancel appointment with status other than scheduled' });
     }
 
@@ -2669,7 +2669,7 @@ app.post('/cancel-appointment-doctor/:id', async (req, res) => {
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
     }
-
+console.log(appointment.status);
     // Check if the appointment is scheduled
     if (appointment.status !== 'scheduled') {
       return res.status(400).json({ message: 'Cannot cancel appointment with status other than scheduled' });
@@ -2711,11 +2711,11 @@ app.post('/cancel-appointment-doctor/:id', async (req, res) => {
 });
 
 app.post('/reschedule-appointment', async (req, res) => {
-  const { appointmentId, rescheduleDateTime } = req.body;
+  const { rescheduleAppointmentId, rescheduleDateTime } = req.body;
 
   try {
     // Find the appointment by ID
-    const appointment = await AppointmentsModel.findById(appointmentId);
+    const appointment = await AppointmentsModel.findById(rescheduleAppointmentId);
 
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
@@ -2731,7 +2731,7 @@ app.post('/reschedule-appointment', async (req, res) => {
     const newNotification = new NotificationsModel({
       patient: patient._id, // Replace with a valid patient ID
       doctor: doctor._id,   // Replace with a valid doctor ID
-      date: dateTime,
+      date: rescheduleDateTime,
       type: "resc"           // Replace with the desired date=
     });
     // Save the new Notification object to the database
