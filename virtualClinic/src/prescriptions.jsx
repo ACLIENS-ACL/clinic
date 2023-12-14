@@ -98,6 +98,7 @@ const Prescription = () => {
 
     return (
         <div style={styles.container}>
+            <br></br>
             <h2 style={styles.heading}>Prescription</h2>
             <div>
                 <h3 style={styles.subHeading}>Medicines</h3>
@@ -110,13 +111,15 @@ const Prescription = () => {
                             Medicinal Use: {medicine.medicinalUse}<br />
                             Description: {medicine.description}<br />
                             <img src={`http://localhost:3002/uploads/${encodeURIComponent(medicine.imageUrl.fileName)}`} alt={medicine.name} style={{ maxWidth: '100px', maxHeight: '100px', margin: '5px 0' }} />
-                            <button style={styles.addButton} onClick={() => addMedicine(medicine.name)}>Add</button>
+                            <button style={styles.addButton} onClick={() => addMedicine(medicine.name)}
+                                onMouseEnter={(e) => (e.target.style.backgroundColor = 'green')}
+                                onMouseLeave={(e) => (e.target.style.backgroundColor = 'gray')}>Add</button>
                             <hr style={{ borderTop: '1px solid #ddd', margin: '10px 0' }} />
                         </li>
                     ))}
                 </ul>
             </div>
-            <div>
+            <div style={{ display: prescription.length === 0 ? 'none' : 'block' }}>
                 <h3 style={styles.subHeading}>Prescription</h3>
                 <ul style={styles.list}>
                     {prescription.map((item, index) => (
@@ -136,12 +139,16 @@ const Prescription = () => {
                                 style={styles.dosageInput}
                             />
                             days
-                            <button style={styles.removeButton} onClick={() => removeMedicine(index)}>Remove</button>
+                            <button style={styles.removeButton} onClick={() => removeMedicine(index)}
+                                onMouseEnter={(e) => (e.target.style.backgroundColor = 'crimson')}
+                                onMouseLeave={(e) => (e.target.style.backgroundColor = 'gray')}
+                            >Remove</button>
                         </li>
                     ))}
                 </ul>
+                <button style={styles.generateButton} onClick={addPrescription}>Add Prescription</button>
             </div>
-            <button style={styles.generateButton} onClick={addPrescription}>Add Prescription</button>
+
         </div>
     );
 
@@ -174,13 +181,16 @@ const styles = {
         alignItems: 'center',
         borderBottom: '1px solid #ccc',
         padding: '8px',
+        transition: 'background-color 0.3s',
     },
     addButton: {
-        backgroundColor: '#4caf50',
+        backgroundColor: 'gray',
         color: '#fff',
         border: 'none',
         padding: '6px 12px',
         cursor: 'pointer',
+        transition: 'background-color 0.3s',
+        borderRadius: '4px'
     },
     dosageInput: {
         marginLeft: '8px',
@@ -189,21 +199,26 @@ const styles = {
         textAlign: 'center',
     },
     removeButton: {
-        backgroundColor: '#f44336',
+        backgroundColor: 'gray',
         color: '#fff',
         border: 'none',
         padding: '6px 12px',
         cursor: 'pointer',
+        transition: 'background-color 0.3s',
+        borderRadius: '4px'
     },
     generateButton: {
-        backgroundColor: '#2196f3',
+        backgroundColor: 'navy',
         color: '#fff',
-        border: 'none',
+        border:'none',
+        borderRadius: '3px',
         padding: '10px',
-        width: '100%',
+        width: '40%',
         cursor: 'pointer',
-        marginTop: '20px',
+        marginLeft:'30%',
+        transition: 'background-color 0.3s',
     },
 };
+
 
 export default Prescription;

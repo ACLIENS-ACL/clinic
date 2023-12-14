@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { jwtDecode } from 'jwt-decode';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import Navbar from './navbar';
 
 const ChatApp = () => {
     const { roomId } = useParams();
-    alert(roomId);
     const [messages, setMessages] = useState([]);
     const [messageInput, setMessageInput] = useState('');
     const [username, setUsername] = useState('');
-
+    const messagesContainerRef = useRef(null);
     // Function to generate a unique user ID
     const generateUserId = () => {
         return '_' + Math.random().toString(36).substr(2, 9);
@@ -27,10 +27,16 @@ const ChatApp = () => {
             roomId: roomId, // Pass the roomId to the socket creation
         },
     });
+    useEffect(() => {
+        // Scroll to the bottom of the messages container
+        if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+    }, [messages]);
 
     useEffect(() => {
         setUsername(userId);
-        appendMessage('You joined');
+        appendMessage('You joined', true);
         socket.emit('new-user', { user: userId, userId, roomId });
 
         socket.on('chat-message', (data) => {
@@ -63,38 +69,98 @@ const ChatApp = () => {
     const sendMessage = (e) => {
         e.preventDefault();
         const message = messageInput;
-        appendMessage(`You: ${message}`);
+        appendMessage(`You: ${message}`, true);
         socket.emit('send-chat-message', { message, userId, roomId });
         setMessageInput('');
     };
 
-    const appendMessage = (message) => {
-        setMessages((prevMessages) => [...prevMessages, message]);
+    const appendMessage = (message, isYourMessage) => {
+        setMessages((prevMessages) => [...prevMessages, { content: message, isYourMessage }]);
     };
 
+    const styles = {
+        container: {
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100vh',
+            padding: '20px',
+
+            width: '60%',
+            margin: 'auto'
+        },
+        messageContainer: {
+            flex: 1,
+            overflowY: 'auto',
+            marginBottom: '20px',
+            border: '1px solid #ccc',
+            padding: '10px',
+            borderRadius: '5px',
+        },
+        yourMessage: {
+            marginBottom: '10px',
+            padding: '10px',
+            backgroundColor: '#bfe4c7',
+            borderRadius: '5px',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            wordWrap: 'break-word',
+        },
+        otherMessage: {
+            marginBottom: '10px',
+            padding: '10px',
+            backgroundColor: 'lightblue',
+            borderRadius: '5px',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            wordWrap: 'break-word',
+        },
+        sendContainer: {
+            display: 'flex',
+            alignItems: 'center',
+        },
+        messageInput: {
+            flex: 1,
+            padding: '10px',
+            marginRight: '10px',
+            borderRadius: '5px',
+            border: '1px solid #ccc',
+        },
+        sendButton: {
+            padding: '10px 20px',
+            borderRadius: '5px',
+            backgroundColor: '#007BFF', // Change this to your desired button color
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+        },
+    };
+
+    // Your component using the styles
     return (
-        <div style={styles.container}>
-            <div style={styles.messageContainer}>
-                {messages.map((message, index) => (
-                    <div key={index} style={styles.message}>
-                        {message}
-                    </div>
-                ))}
+        <div>
+            <Navbar />
+            <div style={styles.container}>
+                <div ref={messagesContainerRef} style={styles.messageContainer}>
+                    {messages.map((message, index) => (
+                        <div key={index} style={message.isYourMessage ? styles.yourMessage : styles.otherMessage}>
+                            {message.content}
+                        </div>
+                    ))}
+                </div>
+                <form style={styles.sendContainer} onSubmit={sendMessage}>
+                    <input
+                        type="text"
+                        id="message-input"
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        style={styles.messageInput}
+                    />
+                    <button type="submit" id="send-button" style={styles.sendButton}>
+                        Send
+                    </button>
+                </form>
             </div>
-            <form style={styles.sendContainer} onSubmit={sendMessage}>
-                <input
-                    type="text"
-                    id="message-input"
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    style={styles.messageInput}
-                />
-                <button type="submit" id="send-button" style={styles.sendButton}>
-                    Send
-                </button>
-            </form>
         </div>
     );
+
 };
 const styles = {
     container: {

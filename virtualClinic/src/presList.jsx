@@ -60,13 +60,14 @@ function PrescriptionList() {
       });
   }
   const containerStyle = {
-    maxWidth: '800px',
+    width:'55%',
     margin: '0 auto',
     padding: '20px',
   };
   const headingStyle = {
-    fontSize: '24px',
+    fontSize: '30px',
     color: '#333',
+    textAlign:'center',
     marginBottom: '20px',
   };
 
@@ -132,14 +133,7 @@ function PrescriptionList() {
     marginLeft: '5px',
   };
 
-  const payButtonStyle = {
-    backgroundColor: '#27ae60',
-    color: 'white',
-    padding: '10px 15px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    border: 'none',
-  };
+
 
   const handlePrescriptionSelect = (prescription) => {
     if (selectedPrescription === prescription) {
@@ -220,84 +214,86 @@ function PrescriptionList() {
   };
 
   return (
-    <div style={containerStyle}>
+    <div>
       <Navbar />
-      <h1 style={headingStyle}>Prescriptions</h1>
-      <div style={filterContainerStyle}>
-        <label htmlFor="filter">Filter by status:</label>
-        <select id="filter" style={filterSelectStyle} value={filterOption} onChange={handleFilterChange}>
-          <option value="all">All</option>
-          <option value="filled">Filled</option>
-          <option value="unfilled">Unfilled</option>
-        </select>
-      </div>
-      <div style={dateFilterContainerStyle}>
-        <div>
-          <label htmlFor="filter" style={{ marginRight: "40px" }}>Filter by Dates/</label>
-          <label htmlFor="startDate" style={{ marginRight: "10px" }}>Start Date:</label>
-          <input type="date" id="startDate" style={dateInputStyle} value={startDate} onChange={handleStartDateChange} />
+      <div style={containerStyle}>
+        <h1 style={headingStyle}>Prescriptions</h1>
+        <div style={filterContainerStyle}>
+          <label htmlFor="filter">Filter by status:</label>
+          <select id="filter" style={filterSelectStyle} value={filterOption} onChange={handleFilterChange}>
+            <option value="all">All</option>
+            <option value="filled">Filled</option>
+            <option value="unfilled">Unfilled</option>
+          </select>
         </div>
-        <div>
-          <label htmlFor="endDate" style={{ marginRight: "10px" }}>End Date:</label>
-          <input type="date" id="endDate" style={dateInputStyle} value={endDate} onChange={handleEndDateChange} />
+        <div style={dateFilterContainerStyle}>
+          <div>
+            <label htmlFor="filter" style={{ marginRight: "40px" }}>Filter by Dates/</label>
+            <label htmlFor="startDate" style={{ marginRight: "10px" }}>Start Date:</label>
+            <input type="date" id="startDate" style={dateInputStyle} value={startDate} onChange={handleStartDateChange} />
+          </div>
+          <div>
+            <label htmlFor="endDate" style={{ marginRight: "10px" }}>End Date:</label>
+            <input type="date" id="endDate" style={dateInputStyle} value={endDate} onChange={handleEndDateChange} />
+          </div>
+          <button onClick={handleClear} style={clearButtonStyle}>
+            Clear
+          </button>
         </div>
-        <button onClick={handleClear} style={clearButtonStyle}>
-          Clear
-        </button>
-      </div>
-      {filteredPrescriptions.length === 0 ? (
-        <p>No prescriptions found.</p>
-      ) : (
-        <ul style={prescriptionListStyle}>
-          {filteredPrescriptions.map((prescription) => (
-            <li key={prescription._id} style={listItemStyle} onClick={() => handlePrescriptionSelect(prescription)}>
-              <h2>Date: {new Date(prescription.date).toLocaleString()}</h2>
-              <p style={{ fontSize: '16px' }}><strong>Status:</strong> {prescription.filled ? 'Filled' : 'Not Filled'}</p>
-              {selectedPrescription === prescription && (
-                <div style={detailsStyle}>
-                  <h3>Prescription Details</h3>
-                  <p><strong>Doctor Name: </strong>{selectedPrescription.doctorName}</p>
-                  <div style={{ border: '1px solid black', borderRadius: '5px' }}>
-                    <p style={{ fontSize: '18px', paddingTop: '15px', paddingLeft: '15px', marginBottom: '0' }}><strong>Medicines:</strong></p>
-                    <ul style={{ listStyleType: 'none', padding: '0' }}>
-                      {selectedPrescription.medicines.map((medicine, index) => (
-                        <li key={index} style={{ borderBottom: '1px solid #ddd', padding: '5px 40px' }}>
-                          <p><strong>Name: </strong>{medicine.name}</p>
-                          <p><strong>Dose:</strong> {medicine.dose.daily} times per day for {medicine.dose.days} day(s)</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <p style={{ fontSize: '16px', paddingTop: '15px' }}>
-                    Download Prescription as PDF:
-                    <a href={`http://localhost:3001/uploads/${encodeURIComponent(selectedPrescription.fileName)}`} style={downloadLinkStyle} download>
-                      Download Link
-                    </a>
-                    {!prescription.filled && (
-                      <button onClick={handlePayment}
-                        onMouseEnter={(e) => (e.target.style.backgroundColor = '#27ae60')}
-                        onMouseLeave={(e) => (e.target.style.backgroundColor = 'gray')}
-                        style={{
-                          backgroundColor: 'gray',
-                          color: 'white',
-                          padding: '10px 15px',
-                          borderRadius: '4px',
-                          marginTop:'-5px',
-                          cursor: 'pointer',
-                          border: 'none',
-                          float:'right'
-                        }}>
-                        Order Now
-                      </button>
-                    )}
-                  </p>
+        {filteredPrescriptions.length === 0 ? (
+          <p>No prescriptions found.</p>
+        ) : (
+          <ul style={prescriptionListStyle}>
+            {filteredPrescriptions.map((prescription) => (
+              <li key={prescription._id} style={listItemStyle} onClick={() => handlePrescriptionSelect(prescription)}>
+                <h2>Date: {new Date(prescription.date).toLocaleString()}</h2>
+                <p style={{ fontSize: '16px' }}><strong>Status:</strong> {prescription.filled ? 'Filled' : 'Not Filled'}</p>
+                {selectedPrescription === prescription && (
+                  <div style={detailsStyle}>
+                    <h3>Prescription Details</h3>
+                    <p><strong>Doctor Name: </strong>{selectedPrescription.doctorName}</p>
+                    <div style={{ border: '1px solid black', borderRadius: '5px' }}>
+                      <p style={{ fontSize: '18px', paddingTop: '15px', paddingLeft: '15px', marginBottom: '0' }}><strong>Medicines:</strong></p>
+                      <ul style={{ listStyleType: 'none', padding: '0' }}>
+                        {selectedPrescription.medicines.map((medicine, index) => (
+                          <li key={index} style={{ borderBottom: '1px solid #ddd', padding: '5px 40px' }}>
+                            <p><strong>Name: </strong>{medicine.name}</p>
+                            <p><strong>Dose:</strong> {medicine.dose.daily} times per day for {medicine.dose.days} day(s)</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <p style={{ fontSize: '16px', paddingTop: '15px' }}>
+                      Download Prescription as PDF:
+                      <a href={`http://localhost:3001/uploads/${encodeURIComponent(selectedPrescription.fileName)}`} style={downloadLinkStyle} download>
+                        Download Link
+                      </a>
+                      {!prescription.filled && (
+                        <button onClick={handlePayment}
+                          onMouseEnter={(e) => (e.target.style.backgroundColor = '#27ae60')}
+                          onMouseLeave={(e) => (e.target.style.backgroundColor = 'gray')}
+                          style={{
+                            backgroundColor: 'gray',
+                            color: 'white',
+                            padding: '10px 15px',
+                            borderRadius: '4px',
+                            marginTop: '-5px',
+                            cursor: 'pointer',
+                            border: 'none',
+                            float: 'right'
+                          }}>
+                          Order Now
+                        </button>
+                      )}
+                    </p>
 
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

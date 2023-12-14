@@ -4,38 +4,34 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from './navbar';
 import { jwtDecode } from "jwt-decode";
 
-
 function FollowUpRequests() {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
+
     useEffect(() => {
         try {
-            // Get the token from local storage
-            const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+            const token = localStorage.getItem('token');
 
             if (!token) {
-                // If the token doesn't exist, navigate to the login page
                 navigate('/login');
                 return;
             }
 
-            // Decode the token to get user information
             const decodedToken = jwtDecode(token);
             const userType = decodedToken.type.toLowerCase();
 
             if (userType !== 'doctor') {
-                // If the user is not a patient or is not logged in, navigate to the login page
                 navigate('/login');
             }
         } catch (error) {
-
+            console.error('Error decoding token:', error);
+            navigate('/login');
         }
     }, [navigate]);
 
     const handleRejectRequest = (appointmentId) => {
-        // Make an Axios POST request to reject the appointment
         const token = localStorage.getItem('token');
         axios.post(
             'http://localhost:3001/rejectRequest',
@@ -47,18 +43,15 @@ function FollowUpRequests() {
             }
         )
             .then(response => {
-                window.location.reload();
-                // Handle success, maybe update the UI accordingly
-                console.log('Appointment rejected successfully:', response.data);
+                // Update state instead of reloading the whole page
+                setRequests(prevRequests => prevRequests.filter(request => request.appointmentId !== appointmentId));
             })
             .catch(err => {
-                // Handle error
                 console.error('Error rejecting appointment:', err);
             });
     };
 
     const handleAcceptRequest = (appointmentId) => {
-        // Make an Axios POST request to accept the appointment
         const token = localStorage.getItem('token');
         axios.post(
             'http://localhost:3001/acceptRequest',
@@ -70,19 +63,16 @@ function FollowUpRequests() {
             }
         )
             .then(response => {
-                window.location.reload();
-                // Handle success, maybe update the UI accordingly
-                console.log('Appointment accepted successfully:', response.data);
+                // Update state instead of reloading the whole page
+                setRequests(prevRequests => prevRequests.filter(request => request.appointmentId !== appointmentId));
             })
             .catch(err => {
-                // Handle error
                 console.error('Error accepting appointment:', err);
             });
     };
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        // Make an Axios GET request to fetch the patient's appointments with doctor names and statuses
         axios.get('http://localhost:3001/getRequests', {
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -98,33 +88,69 @@ function FollowUpRequests() {
             });
     }, []);
 
-
     return (
         <div>
-            {loading && <p>Loading...</p>}
-            {error && <p>Error: {error.message}</p>}
-            {!loading && !error && (
-                <ul>
-                    {requests.map(request => (
-                        <li key={request.appointmentId}>
-                            {/* Display request details here */}
-                            <p>Patient Name: {request.patientName}</p>
-                            <p>Date: {request.appointmentDate}</p>
-                            {/* Buttons to accept and reject */}
-                            <button onClick={() => handleAcceptRequest(request.appointmentId)}>
-                                Accept
-                            </button>
-                            <button onClick={() => handleRejectRequest(request.appointmentId)}>
-                                Reject
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            )}
+            <Navbar />
+            <br></br>
+            <div style={{ fontFamily: 'Arial, sans-serif', padding: '20px', border: '1px solid #ccc', borderRadius: '5px', width: '45%', margin: 'auto' }}>
+                
+                <h3 style={{ fontSize: '24px', marginBottom: '15px', textAlign: 'center' }}>Follow-Up Requests</h3>
+                {loading && <p>Loading...</p>}
+                {error && <p style={{ color: 'red' }}>Error: {error.message}</p>}
+                {!loading && !error && requests.length === 0 && (
+                    <p>No follow-up requests at the moment.</p>
+                )}
+                {!loading && !error && requests.length > 0 && (
+                    <ul style={{ listStyle: 'none', padding: 0 }}>
+                        {requests.map(request => (
+                            <li key={request.appointmentId} style={{ marginBottom: '20px', borderBottom: '1px solid #ccc', paddingBottom: '15px' }}>
+                                <p><strong>Patient Name:</strong> {request.patientName}</p>
+                                <p><strong>Date:</strong> {request.appointmentDate}</p>
+                                <button
+                                    onClick={() => handleAcceptRequest(request.appointmentId)}
+                                    style={{
+                                        padding: '8px',
+                                        marginRight: '10px',
+                                        backgroundColor: '#ccc',
+                                        color: '#fff',
+                                        border: '1px solid #999',
+                                        borderRadius: '5px',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.3s',
+                                        width:'70px'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#030c37'}
+                                    onMouseLeave={(e) => e.target.style.backgroundColor = '#ccc'}
+                                >
+                                    Accept
+                                </button>
+                                <button
+                                    onClick={() => handleRejectRequest(request.appointmentId)}
+                                    style={{
+                                        padding: '8px',
+                                        backgroundColor: '#ccc',
+                                        color: '#fff',
+                                        border: '1px solid #999',
+                                        borderRadius: '5px',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.3s',
+                                        width:'70px'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.backgroundColor = 'crimson'}
+                                    onMouseLeave={(e) => e.target.style.backgroundColor = '#ccc'}
+                                >
+                                    Reject
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
         </div>
     );
+
+
+
 }
-
-
 
 export default FollowUpRequests;

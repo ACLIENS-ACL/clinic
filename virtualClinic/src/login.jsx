@@ -7,7 +7,7 @@ import NeurologySvg from './assets/img/icons/neurology.svg'
 import Logo from './assets/img/gallery/logo.png';
 import CSS from './assets/css/theme.css';
 import Bg from './assets/img/gallery/hero-bg.png';
-import Hero from "./assets/img/gallery/hero.png"
+import Hero from "./assets/img/gallery/hero.png";
 import Depts from './assets/img/gallery/bg-departments.png'
 import BgEye from './assets/img/gallery/bg-eye-care.png'
 import EyeCare from './assets/img/icons/eye-care.png'
@@ -33,6 +33,7 @@ import PeopleLoves from './assets/img/gallery/people-who-loves.png'
 import DoctorsBg from './assets/img/gallery/doctors-bg.png'
 import Footer from "./assets/img/gallery/footer-logo.png"
 import DotBg from './assets/img/gallery/dot-bg.png'
+import { FaEnvelope, FaPhoneAlt } from 'react-icons/fa';
 const LandingPage = () => {
   localStorage.removeItem('token');
   const gradientCustom2Style = {
@@ -90,7 +91,6 @@ const LandingPage = () => {
         } else if (message === 'Waiting for contract') {
           navigate('/contract');
         } else if (message === 'Success' || message === 'success') {
-          alert(message);
           const decodedToken = jwtDecode(token);
           if (decodedToken.type.toLowerCase() === 'admin') {
             navigate('/admin');
@@ -107,12 +107,11 @@ const LandingPage = () => {
           setErrorPassword('');
         }
         else if (message === "Password incorrect")
-        setErrorUsername("");
-          setErrorPassword(message);
+          setErrorUsername("");
+        setErrorPassword(message);
       }
     } catch (err) {
       console.log(err);
-      alert("Hello")
     }
   }
   return (
@@ -238,7 +237,7 @@ const LandingPage = () => {
         </section>
 
         {/* Departments Section */}
-        <section className="py-0" id="departments">
+        <section className="py-0" id="departments" style={{ marginTop: '-120px' }}>
           <div className="container">
             <div className="row">
               <div className="col-12 py-0">
@@ -341,143 +340,7 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
-        <section className="pb-0">
-          <div className="container">
-            <div className="row">
-              <div className="col-12 py-3">
-                <div className="bg-holder bg-size" style={{ backgroundImage: `url(${doctorAbout})`, backgroundPosition: 'top center', backgroundSize: 'contain' }}></div>
-                <h1 className="text-center">OUR DOCTORS</h1>
-              </div>
-            </div>
-          </div>
-        </section>
-        <section className="py-0">
-          <div className="bg-holder bg-size" style={{ backgroundImage: `url(${DoctorsBg})`, backgroundPosition: 'top center', backgroundSize: 'contain' }}></div>
-          <div className="container">
-            <div className="row flex-center">
-              <div className="col-xl-10 px-0">
-                <Carousel id="carouselExampleDark" className="carousel slide" interval={10000} pause="hover">
-                  {/* Repeat the following Carousel.Item block for each carousel item */}
-                  <Carousel.Item>
-                    <div className="row h-100 m-lg-7 mx-3 mt-6 mx-md-4 my-md-7">
-                      {/* Repeat the following block for each card within the carousel item */}
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Repeat the above block for each additional card within the carousel item */}
-                    </div>
-                  </Carousel.Item>
-                  <Carousel.Item>
-                    <div className="row h-100 m-lg-7 mx-3 mt-6 mx-md-4 my-md-7">
-                      {/* Repeat the following block for each card within the carousel item */}
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Repeat the above block for each additional card within the carousel item */}
 
-                      {/* Repeat the following block for the next card within the carousel item */}
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Repeat the above block for each additional card within the carousel item */}
-
-                      {/* Repeat the following block for the next card within the carousel item */}
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Repeat the above block for each additional card within the carousel item */}
-                    </div>
-                  </Carousel.Item>
-                  {/* Repeat the above Carousel.Item block for each additional carousel item */}
-                </Carousel>
-              </div>
-            </div>
-          </div>
-        </section>
         <section className="py-5">
           <div className="container">
             <div className="row">
@@ -559,25 +422,30 @@ const LandingPage = () => {
               <div class="col-6 col-sm-4 col-lg-2 mb-3 order-2 order-sm-1">
                 <h5 class="lh-lg fw-bold mb-4 text-light font-sans-serif">Departments</h5>
                 <ul class="list-unstyled mb-md-4 mb-lg-0">
-                  <li class="lh-lg"><a class="footer-link" href="#!">Eye care</a></li>
-                  <li class="lh-lg"><a class="footer-link" href="#!">Cardiac are</a></li>
-                  <li class="lh-lg"><a class="footer-link" href="#!">Heart care</a></li>
+                  <li class="lh-lg" style={{ color: '#B2DDED' }}>Eye care</li>
+                  <li class="lh-lg" style={{ color: '#B2DDED' }}>Cardiac are</li>
+                  <li class="lh-lg" style={{ color: '#B2DDED' }}>Heart care</li>
                 </ul>
               </div>
               <div class="col-6 col-sm-4 col-lg-2 mb-3 order-3 order-sm-2">
                 <h5 class="lh-lg fw-bold text-light mb-4 font-sans-serif">Membership</h5>
                 <ul class="list-unstyled mb-md-4 mb-lg-0">
-                  <li class="lh-lg"><a class="footer-link" href="#!">Free trial</a></li>
-                  <li class="lh-lg"><a class="footer-link" href="#!">Silver</a></li>
-                  <li class="lh-lg"><a class="footer-link" href="#!">Premium</a></li>
+                  <li class="lh-lg" style={{ color: '#B2DDED' }}> Silver</li>
+                  <li class="lh-lg" style={{ color: '#B2DDED' }}>Gold</li>
+                  <li class="lh-lg" style={{ color: '#B2DDED' }}>Platinum</li>
                 </ul>
               </div>
               <div class="col-6 col-sm-4 col-lg-2 mb-3 order-3 order-sm-2">
                 <h5 class="lh-lg fw-bold text-light mb-4 font-sans-serif"> Customer Care</h5>
-                <ul class="list-unstyled mb-md-4 mb-lg-0">
-                  <li class="lh-lg"><a class="footer-link" href="#!">About Us</a></li>
-                  <li class="lh-lg"><a class="footer-link" href="#!">Contact US</a></li>
-                  <li class="lh-lg"><a class="footer-link" href="#!">Get Update</a></li>
+                <ul className="list-unstyled mb-md-4 mb-lg-0">
+                  <li className="lh-lg">
+                    <FaEnvelope style={{ color: '#B2DDED', marginRight:'5px' }} />
+                    <a className="footer-link" href="mailto:info@gmail.com">info@gmail.com</a>
+                  </li>
+                  <li className="lh-lg">
+                    <FaPhoneAlt style={{ color: '#B2DDED', marginRight:'5px' }} />
+                    <a className="footer-link" href="tel:+20123456789">+20123456789</a>
+                  </li>
                 </ul>
               </div>
             </div>

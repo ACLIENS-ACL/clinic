@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
 import Peer from 'peerjs';
-
+import Navbar from './navbar';
 const socket = io('http://localhost:3004');
 
 function App() {
@@ -76,14 +76,68 @@ function App() {
     };
 
     return (
-        <div className="App">
-            <h1>Video Call App</h1>
-            <p>Your PeerJS ID: {peerId}</p>
-            <video ref={videoRef} autoPlay muted playsInline></video>
-            <video ref={remoteVideoRef} autoPlay playsInline></video>
-            <button onClick={initiateCall}>Initiate Call</button>
+        <div>
+            <Navbar />
+            <div className="app-container" style={styles.appContainer}>
+                <h1 style={styles.heading}>Video Call App</h1>
+                <p style={styles.peerId}>Your PeerJS ID: {peerId}</p>
+                <div className="video-container" style={styles.videoContainer}>
+                    <video ref={videoRef} autoPlay muted playsInline style={styles.localVideo}></video>
+                    <video ref={remoteVideoRef} autoPlay playsInline style={styles.remoteVideo}></video>
+                </div>
+                <button onClick={initiateCall} style={styles.callButton}>
+                    Initiate Call
+                </button>
+            </div>
         </div>
     );
+
 }
+const styles = {
+    appContainer: {
+        fontFamily: 'Arial, sans-serif',
+        textAlign: 'center',
+        padding: '20px',
+    },
+    heading: {
+        fontSize: '28px',
+        marginBottom: '20px',
+        color: '#333',
+    },
+    peerId: {
+        fontSize: '16px',
+        color: '#666',
+    },
+    videoContainer: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        margin: '20px 0',
+
+    },
+    localVideo: {
+        width: '500px', // Adjust width to make it bigger
+        height: '400px', // Adjust height to make it bigger
+        borderRadius: '8px',
+        marginRight: '20px',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    },
+    remoteVideo: {
+        width: '500px', // Adjust width to make it bigger
+        height: '400px', // Adjust height to make it bigger
+        borderRadius: '8px',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    },
+
+    callButton: {
+        padding: '10px 20px',
+        fontSize: '16px',
+        backgroundColor: '#007BFF',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+    },
+};
 
 export default App;

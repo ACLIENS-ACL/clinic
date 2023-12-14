@@ -5,11 +5,11 @@ import * as IoIcons from 'react-icons/io';
 import * as RiIcons from 'react-icons/ri';
 import { MdOutlineFamilyRestroom } from "react-icons/md";
 import { FaUsersViewfinder } from "react-icons/fa6";
-import { IoPersonAddSharp } from "react-icons/io5";
+import { IoPersonAddSharp, IoAdd } from "react-icons/io5";
 import { TbHealthRecognition } from "react-icons/tb";
 import { RiHealthBookFill } from "react-icons/ri";
 import { RiFileHistoryFill } from "react-icons/ri";
-import { RiLockPasswordFill } from "react-icons/ri";
+import { RiLockPasswordFill, RiChatFollowUpFill } from "react-icons/ri";
 import { MdManageAccounts } from "react-icons/md";
 export const SidebarData = [
   {
@@ -171,19 +171,49 @@ export const SidebarData = [
     ]
   },
 
-
-
-
-
-
-
+  {
+    title: 'Your Patients',
+    type: 'doctor',
+    path: '/viewPatients',
+    icon: <IoIcons.IoIosBody />
+  },
+  {
+    title: 'Prescriptions',
+    type: 'doctor',
+    path: '/myPresList',
+    icon: <FaIcons.FaPrescriptionBottleAlt />
+  },
+  {
+    title: 'Appointments',
+    icon: <FaIcons.FaFileMedical />,
+    iconClosed: <RiIcons.RiArrowDownSFill />,
+    iconOpened: <RiIcons.RiArrowUpSFill />,
+    type: 'doctor',
+    subNav: [
+      {
+        title: 'Add Appointment Slots',
+        path: '/addAppointments',
+        icon: <IoAdd />
+      },
+      {
+        title: 'View Appointments',
+        path: '/myDAppointments',
+        icon: <FaIcons.FaFileMedicalAlt />
+      },
+      {
+        title: 'Follow-up Requests',
+        path: '/followupReqs',
+        icon: <RiChatFollowUpFill />
+      }
+    ]
+  },
 
   {
     title: 'Account',
     icon: <MdManageAccounts />,
     iconClosed: <RiIcons.RiArrowDownSFill />,
     iconOpened: <RiIcons.RiArrowUpSFill />,
-
+    type: 'admin',
     subNav: [
       {
         title: 'Change Password',
@@ -193,8 +223,42 @@ export const SidebarData = [
     ]
   },
   {
+    title: 'Account',
+    icon: <MdManageAccounts />,
+    iconClosed: <RiIcons.RiArrowDownSFill />,
+    iconOpened: <RiIcons.RiArrowUpSFill />,
+    type: 'patient',
+    subNav: [
+      {
+        title: 'Change Password',
+        path: '/changePassword',
+        icon: <RiLockPasswordFill />
+      }
+    ]
+  },
+  {
+    title: 'Account',
+    icon: <MdManageAccounts />,
+    iconClosed: <RiIcons.RiArrowDownSFill />,
+    iconOpened: <RiIcons.RiArrowUpSFill />,
+    type: 'doctor',
+    subNav: [
+      {
+        title: 'Change Password',
+        path: '/changePassword',
+        icon: <RiLockPasswordFill />
+      },
+      {
+        title: 'Edit Your Info',
+        path: '/edit-doctor-info',
+        icon: <FaIcons.FaInfoCircle />
+      }
+    ]
+  },
+  {
     title: 'Logout',
     path: '/',
-    icon: <FaIcons.FaPrescriptionBottleAlt />
+    icon: <FaIcons.FaSignOutAlt />
   },
+
 ];

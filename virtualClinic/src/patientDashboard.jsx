@@ -4,7 +4,9 @@ import axios from 'axios';
 import * as FaIcons from 'react-icons/fa';
 import * as IoIcons from 'react-icons/io';
 import { IoPersonAddSharp } from "react-icons/io5";
-
+import CSS from './assets/css/theme.css';
+import Bg from './assets/img/gallery/hero-bg.png';
+import Hero from "./assets/img/gallery/hero.png"
 import { FaComment, FaVideo } from 'react-icons/fa'; // Import chat and video call icons
 
 import {
@@ -95,8 +97,6 @@ function AdminDashboard() {
       },
     });
     navigate(`/video/${response.data.roomId}`);
-
-
   }
   const cardsData = [
     {
@@ -130,197 +130,23 @@ function AdminDashboard() {
     <div>
       <div>
         <Navbar />
-        <div style={{ maxWidth: '100vw', overflow: 'hidden' }}>
-          <Carousel>
-            <Carousel.Item>
-              <img src="https://images.everydayhealth.com/homepage/health-topics-2.jpg?sfvrsn=757370ae_2" text="First slide" width="100%" height="600px" />
-              <Carousel.Caption>
-                <h3>Health Advice to Keep You Safe</h3>
-              </Carousel.Caption>
-            </Carousel.Item>
-            <Carousel.Item>
-              <img src="https://media.healthdirect.org.au/images/inline/original/hd-sun-protection-infographic-3cb19c.png" width="100%" height="600px" text="Second slide" />
-              <Carousel.Caption>
-              </Carousel.Caption>
-            </Carousel.Item>
-            <Carousel.Item>
-              <img src="https://cdn.whitebearplatform.com/hwdevon/wp-content/uploads/2021/08/31121423/Choose-well-help-us-help-you.png" width="100%" height="600px" text="Third slide" />
-              <Carousel.Caption>
-              </Carousel.Caption>
-            </Carousel.Item>
-          </Carousel>
-        </div>
-        <section className="pb-0" style={{ height: "100px" }}>
+        <section className="py-xxl-10 pb-0" id="home">
+          <div className="bg-holder bg-size" style={{ backgroundImage: `url(${Bg})`, backgroundPosition: 'top center', backgroundSize: 'cover' }}></div>
           <div className="container">
-            <div className="row">
-              <div className="col-12 py-3">
-                <div className="bg-holder bg-size" style={{ backgroundImage: `url(${doctorAbout})`, backgroundPosition: 'top center', backgroundSize: 'contain' }}></div>
-                <h1 className="text-center">OUR DOCTORS</h1>
+            <div className="row min-vh-xl-100 min-vh-xxl-25">
+              <div className="col-md-5 col-xl-6 col-xxl-7 order-0 order-md-1 text-end">
+                <img className="pt-7 pt-md-0 w-100" src={Hero} alt="hero-header" />
+              </div>
+              <div className="col-md-7 col-xl-6 col-xxl-5 text-md-start text-center py-6">
+                <h1 className="fw-light font-base fs-6 fs-xxl-7">We're <strong>determined</strong> for<br />your&nbsp;<strong>better life.</strong></h1>
+                <p className="fs-1 mb-5">You can get the care you need 24/7 – be it online or in <br />person. You will be treated by caring specialist doctors. </p>
+                <a className="btn btn-lg btn-primary rounded-pill" href="/listdoctors" role="button">Make an Appointment</a>
               </div>
             </div>
           </div>
         </section>
-        <section className="py-0" style={{ height: "100px" }}>
-          <div className="bg-holder bg-size" style={{ backgroundImage: `url(${DoctorsBg})`, backgroundPosition: 'top center', backgroundSize: 'contain' }}></div>
-          <div className="container">
-            <div className="row flex-center">
-              <div className="col-xl-10 px-0">
-                <Carousel id="carouselExampleDark" className="carousel slide" interval={10000} pause="hover">
-                  {/* Repeat the following Carousel.Item block for each carousel item */}
-                  <Carousel.Item>
-                    <div className="row h-100 m-lg-7 mx-3 mt-6 mx-md-4 my-md-7">
-                      {/* Repeat the following block for each card within the carousel item */}
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Repeat the above block for each additional card within the carousel item */}
-                    </div>
-                  </Carousel.Item>
-                  <Carousel.Item>
-                    <div className="row h-100 m-lg-7 mx-3 mt-6 mx-md-4 my-md-7">
-                      {/* Repeat the following block for each card within the carousel item */}
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Repeat the above block for each additional card within the carousel item */}
-
-                      {/* Repeat the following block for the next card within the carousel item */}
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Repeat the above block for each additional card within the carousel item */}
-
-                      {/* Repeat the following block for the next card within the carousel item */}
-                      <div className="col-md-4 mb-8 mb-md-0">
-                        <div className="card card-span h-100 shadow">
-                          <div className="card-body d-flex flex-column flex-center py-5">
-                            <img src={Anita} width="128" alt="..." />
-                            <h5 className="mt-3">Anita Deshai</h5>
-                            <p className="mb-0 fs-xxl-1">Pediatrics, Gochi Medicine</p>
-                            <p className="text-600 mb-0">Florida, United States</p>
-                            <p className="text-600 mb-4">10 years experience</p>
-                            <div className="text-center">
-                              <Button variant="outline-secondary" className="rounded-pill" type="submit">
-                                View Profile
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Repeat the above block for each additional card within the carousel item */}
-                    </div>
-                  </Carousel.Item>
-                  {/* Repeat the above Carousel.Item block for each additional carousel item */}
-                </Carousel>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div className="d-flex justify-content-end">
-          <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: '1000' }}>
-            <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: '1000' }}>
-              <Dropdown drop="up">
-                <Dropdown.Toggle variant="secondary" id="dropdown-basic">
-                  Contact Your Doctors
-                </Dropdown.Toggle>
-
-                <Dropdown.Menu>
-                  {doctors.map((doctor) => (
-                    <Dropdown.Item key={doctor.doctorId}>
-                      <div className="d-flex align-items-center justify-content-between">
-                        <span>{doctor.doctorName}</span>
-                        <span style={{ marginLeft: '10px' }}>
-                          {/* Add chat and video icons */}
-                          <FaComment
-                            style={{ marginRight: '10px', cursor: 'pointer' }}
-                            onClick={(e) => handleChatClick(e, doctor.doctorId)}
-                          />
-                          <FaVideo
-                            style={{ marginLeft: '10px', cursor: 'pointer' }}
-                            onClick={(e) => handleVideoCallClick(e, doctor.doctorId)}
-                          />
-                        </span>
-                      </div>
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown.Menu>
-              </Dropdown>
-            </div>
-          </div>
-        </div>
-        <section style={{ maxHeight: "15vh", paddingTop: "520px", position: "absolute" }}>
+        <div>
+        <section style={{ maxHeight: "15vh", paddingTop: "20px", marginTop:'-150px'}}>
           <div id="section0">
             <div id="section0text">
               <h3 style={{ fontSize: "40px", fontWeight: "1000", letterSpacing: "2px", textAlign: "center" }}>Quick Menu</h3>
@@ -354,6 +180,42 @@ function AdminDashboard() {
             </div>
           </div>
         </section>
+        </div>
+        
+
+        <div className="d-flex justify-content-end">
+          <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: '1000' }}>
+            <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: '1000' }}>
+              <Dropdown drop="up">
+                <Dropdown.Toggle variant="secondary" id="dropdown-basic">
+                  Contact Your Doctors
+                </Dropdown.Toggle>
+
+                <Dropdown.Menu>
+                  {doctors.map((doctor) => (
+                    <Dropdown.Item key={doctor.doctorId}>
+                      <div className="d-flex align-items-center justify-content-between">
+                        <span>{doctor.doctorName}</span>
+                        <span style={{ marginLeft: '10px' }}>
+                          {/* Add chat and video icons */}
+                          <FaComment
+                            style={{ marginRight: '10px', cursor: 'pointer' }}
+                            onClick={(e) => handleChatClick(e, doctor.doctorId)}
+                          />
+                          <FaVideo
+                            style={{ marginLeft: '10px', cursor: 'pointer' }}
+                            onClick={(e) => handleVideoCallClick(e, doctor.doctorId)}
+                          />
+                        </span>
+                      </div>
+                    </Dropdown.Item>
+                  ))}
+                </Dropdown.Menu>
+              </Dropdown>
+            </div>
+          </div>
+        </div>
+
 
 
 

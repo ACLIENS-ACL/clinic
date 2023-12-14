@@ -190,23 +190,22 @@ const Navbar = () => {
 
 export default Navbar;
 */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as FaIcons from 'react-icons/fa';
 import * as AiIcons from 'react-icons/ai';
 import { Link } from 'react-router-dom';
 import { SidebarData } from './SidebarData';
 
 import { IconContext } from 'react-icons';
-import { FaBell } from 'react-icons/fa'; // Import the bell icon
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { MDBBtn } from 'mdb-react-ui-kit';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { AiOutlineHome, AiOutlineBell, AiOutlineLogout } from 'react-icons/ai';
 import SubMenu from './Submenu';
-import { FaArrowDown, FaArrowRight } from 'react-icons/fa';
 import styled from 'styled-components';
+import { jwtDecode } from 'jwt-decode';
+
 
 const SidebarWrap = styled.div`
   width: 100%;
@@ -244,12 +243,42 @@ const SidebarNav = styled.nav`
 
 function Navbar() {
     const [sidebar, setSidebar] = useState(false);
-
-
+    const [walletValue, setWalletValue] = useState(0);
+    const [userType, setUserType] = useState('');
     const [sidebarExpand, setSidebarExpand] = useState(false);
     const navigate = useNavigate();
 
+    useEffect(() => {
+        try {
+            const token = localStorage.getItem('token');
 
+            if (!token) {
+                navigate('/login');
+                return;
+            }
+
+            const decodedToken = jwtDecode(token);
+            const userType = decodedToken.type.toLowerCase();
+            setUserType(userType);
+
+            if (token && userType !== 'admin') {
+                axios
+                    .get('http://localhost:3001/get-wallet-value', {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    })
+                    .then((response) => {
+                        setWalletValue(response.data.walletValue.toFixed(2));
+                    })
+                    .catch((error) => {
+                        console.error('Error fetching wallet value:', error);
+                    });
+            }
+        } catch (error) {
+            console.error('Error in useEffect:', error);
+        }
+    }, [navigate]);
     const goBack = () => {
         navigate(-1); // Navigate back to the last visited page
     };
@@ -391,7 +420,15 @@ function Navbar() {
                         </NavIcon>
                         {SidebarData.map((item, index) => {
                             return <SubMenu item={item} key={index} />;
+
                         })}
+                        {(userType === 'patient' || userType === 'doctor') && (
+                            <div className="wallet-value" style={{ display: 'flex', alignItems: 'center', marginLeft: '20px', color: 'white', marginTop:'10px' }}>
+                                <FaIcons.FaWallet className="wallet-icon" style={{ fontSize: '1.1em', marginRight: '15px' }} />
+                                <div style={{ marginTop: '-2px' }}>${walletValue}</div>
+                            </div>
+                        )}
+
                     </SidebarWrap>
                 </SidebarNav>
                 <ToastContainer position="top-right" />
