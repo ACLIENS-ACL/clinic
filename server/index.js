@@ -2021,6 +2021,98 @@ app.post('/decide-follow-up-request', async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+// doctor reschedule appointment
+app.post('/reschedule-appointment', async (req, res) => {
+  try {
+    const { appointmentId, newDateTime } = req.body;
+
+    if (!appointmentId || !newDateTime) {
+      return res.status(400).json({ message: 'Both appointmentId and newDateTime must be provided' });
+    }
+
+    const appointment = await AppointmentsModel.findById(appointmentId);
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    appointment.date = new Date(newDateTime);
+    await appointment.save();
+
+    return res.status(200).json({ message: 'Appointment rescheduled successfully', appointment });
+  } catch (error) {
+    console.error('Error rescheduling appointment:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+//patient recieve refund when doctor cancels an appointment
+app.post('/refund', async (req, res) => {
+  try {
+    const { appointmentId } = req.body;
+
+    if (!appointmentId) {
+      return res.status(400).json({ message: 'appointmentId must be provided' });
+    }
+
+    const appointment = await AppointmentsModel.findById(appointmentId);
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    const patient = await PatientsModel.findById(appointment.patient);
+
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    patient.wallet += appointment.totalPaymentDue;
+    await patient.save();
+
+    return res.status(200).json({ message: 'Refund successful', patient });
+  } catch (error) {
+    console.error('Error processing refund:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+//patient can select an appointment's date and time for themselves or a family member
+app.post('/select-appointment', async (req, res) => {
+  try {
+    const { doctorId, dateTime, familyMemberId } = req.body;
+
+    if (!doctorId || !dateTime) {
+      return res.status(400).json({ message: 'Both doctorId and dateTime must be provided' });
+    }
+
+    const patient = await PatientsModel.findOne({ username: logged.username });
+
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    const familyMember = familyMemberId ? patient.familyMembers.id(familyMemberId) : null;
+
+    if (familyMemberId && !familyMember) {
+      return res.status(404).json({ message: 'Family member not found' });
+    }
+
+    const appointment = new AppointmentsModel({
+      doctor: doctorId,
+      patient: patient._id,
+      date: new Date(dateTime),
+      familyMember: familyMember ? familyMember : null
+    });
+
+    await appointment.save();
+
+    return res.status(200).json({ message: 'Appointment selected successfully', appointment });
+  } catch (error) {
+    console.error('Error selecting appointment:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
 
 
 app.listen(3001,'localhost')
