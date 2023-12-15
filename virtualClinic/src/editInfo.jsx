@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
 
 function EditInfo() {
 
@@ -13,6 +14,7 @@ function EditInfo() {
   });
   useEffect(() => {
     try {
+      
       // Get the token from local storage
       const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
 
@@ -65,8 +67,10 @@ function EditInfo() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('token'); 
     // Send a PUT request to update the specific attributes (affiliation, hourlyRate, and email)
     axios.put(`http://localhost:3001/update-doctor-info`, doctorInfo, {
+      
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -82,7 +86,7 @@ function EditInfo() {
       <Navbar />
       <br></br>
       <div style={formStyle}>
-        <h3 style={{textAlign:'center'}}>Edit Your Info</h3>
+        <h3 style={{ textAlign: 'center' }}>Edit Your Info</h3>
         <form onSubmit={handleSubmit}>
           <div style={inputContainerStyle}>
             <label style={labelStyle}>
@@ -128,10 +132,10 @@ function EditInfo() {
             borderRadius: '3px',
             cursor: 'pointer',
             fontSize: '16px',
-            marginLeft:'35%'
+            marginLeft: '35%'
           }}
-          onMouseEnter={(e) => (e.target.style.backgroundColor = 'navy')}
-          onMouseLeave={(e) => (e.target.style.backgroundColor = 'gray')}>
+            onMouseEnter={(e) => (e.target.style.backgroundColor = 'navy')}
+            onMouseLeave={(e) => (e.target.style.backgroundColor = 'gray')}>
             Update Info
           </button>
         </form>

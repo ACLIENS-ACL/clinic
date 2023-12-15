@@ -301,12 +301,14 @@ const AddFamilyMemberForm = () => {
             </option>
           ))}
         </select>
+        {message && <p>{message}</p>}
         <button type="submit" style={styles.button}>
           Add Family Member
         </button>
+        
       </form>;
 
-      {message && <p>{message}</p>}
+      
       {error && <p>{error}</p>}
     </div>
   );

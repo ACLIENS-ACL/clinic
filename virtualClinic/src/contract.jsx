@@ -47,7 +47,7 @@ function DoctorContract() {
             });
 
             setAccepted(true);
-            navigate('/patient');
+            navigate('/doctor');
         } catch (error) {
             console.error('Error accepting contract:', error);
         }

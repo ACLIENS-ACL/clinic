@@ -9,6 +9,7 @@ const Prescription = () => {
     const { appointmentId } = useParams();
     const [medicines, setMedicines] = useState([]);
     const [prescription, setPrescription] = useState([]);
+    const [message, setMessage] = useState('');
     const [dosage, setDosage] = useState('');
     const navigate = useNavigate();
 
@@ -80,7 +81,7 @@ const Prescription = () => {
         setPrescription(updatedPrescription);
     };
 
-    const addPrescription = () => {
+    const addPrescription = async () => {
         // Check if at least one medicine is added
         if (prescription.length === 0) {
             alert('Please add at least one medicine before adding the prescription.');
@@ -92,8 +93,18 @@ const Prescription = () => {
             alert('Please fill in valid dosage values for each medicine.');
             return;
         }
-        // Send prescription data to the backend to add prescription
-        axios.post('http://localhost:3001/add-prescription', { prescription, appointmentId: appointmentId });
+
+        try {
+            const response = await axios.post('http://localhost:3001/add-prescription', { prescription, appointmentId });
+            console.log('Prescription added/updated successfully.');
+            setMessage('Prescription added/updated successfully!');
+
+        } catch (error) {
+            alert("no");
+            console.error('Error adding/updating prescription:', error);
+            setMessage('Error adding/updating prescription. Please try again.');
+        }
+        alert("no2");
     };
 
     return (
@@ -146,6 +157,9 @@ const Prescription = () => {
                         </li>
                     ))}
                 </ul>
+                <div style={{ fontWeight: 'bold', color: 'black', fontStyle: 'italic' }}>
+                    {message && <p>{message}</p>}
+                </div>
                 <button style={styles.generateButton} onClick={addPrescription}>Add Prescription</button>
             </div>
 
@@ -210,12 +224,12 @@ const styles = {
     generateButton: {
         backgroundColor: 'navy',
         color: '#fff',
-        border:'none',
+        border: 'none',
         borderRadius: '3px',
         padding: '10px',
         width: '40%',
         cursor: 'pointer',
-        marginLeft:'30%',
+        marginLeft: '30%',
         transition: 'background-color 0.3s',
     },
 };

@@ -297,7 +297,7 @@ function AppointmentsList() {
               <div >
                 <label style={labelStyle}><strong>Date:</strong></label> {new Date(appointment.date).toLocaleDateString()}<br />
                 <label style={labelStyle}><strong>Status:</strong></label> {appointment.status}<br />
-                <label style={labelStyle}><strong>Doctor:</strong></label> {appointment.patientName}<br />
+                <label style={labelStyle}><strong>Patient:</strong></label> {appointment.patientName}<br />
               </div>
               {
                 appointment.familyMember && (

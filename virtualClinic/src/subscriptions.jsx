@@ -43,15 +43,15 @@ function AdminDashboard() {
 
     const sectionContainerStyle = {
         marginBottom: '20px',
-        width:'60%',
-        margin:'auto'
+        width: '60%',
+        margin: 'auto'
     };
 
     const sectionHeadingStyle = {
         fontSize: '24px',
         color: '#333',
         marginBottom: '15px',
-        textAlign:'center'
+        textAlign: 'center'
     };
 
     const subsectionStyle = {
@@ -166,8 +166,11 @@ function AdminDashboard() {
         if (selectedOption) {
             // Parse the JSON string back into an object
             const selectedMember = JSON.parse(selectedOption);
+            alert(selectedMember.subscribedPackage);
+
             setSelectedFamilyMemberPackage(selectedMember.subscribedPackage);
-            setSelectedFamilyMemberCanceled(selectedMember.canceled)
+            setSelectedFamilyMemberCanceled(selectedMember.canceled ? 'true' : 'false')
+            alert(selectedFamilyMemberCanceled)
             setSelectedFamilyMember(selectedMember._id);
         } else {
             // Handle the case when no family member is selected
@@ -196,8 +199,11 @@ function AdminDashboard() {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-
-                setSelectedFamilyMemberCanceled(new Date((response.data.canceled)).toDateString());
+                if(response.data.canceled)
+                    setSelectedFamilyMemberCanceled(new Date((response.data.canceled)).toDateString());
+                else{
+                    setSelectedFamilyMemberCanceled(false);
+                }
                 setSelectedFamilyMemberDate(response.data.subscriptionDate);
             } catch (error) {
                 // Handle errors
