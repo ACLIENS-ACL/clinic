@@ -93,7 +93,6 @@ io.on('connection', (socket) => {
       });
 
     socket.on('send-chat-message', ({ message, userId, roomId }) => {
-
         // Broadcast the message to all users in the room
         if(activeUsers[userId]){
         socket.to(roomId).emit('chat-message', { name: activeUsers[userId].name, message, userId, roomId });
@@ -2922,6 +2921,7 @@ const medicines = prescription.map(item => ({
     if(updatePrescription){
       updatePrescription.medicines= medicines;
       updatePrescription.save();
+      res.json("success");
     }
     else{
     const newPrescription = new PrescriptionModel({
@@ -2936,9 +2936,12 @@ const medicines = prescription.map(item => ({
     newPrescription.familyMmeber=appointment.familyMember.nationalID
   }
   newPrescription.save();
+
   appointment.prescribed=newPrescription._id;
   appointment.save();
+  res.json("success");
   }} catch (error) {
+    console.log("Hello");
       console.error('Error adding prescription:', error);
       res.status(500).json({ error: 'Error adding prescription' });
   }
