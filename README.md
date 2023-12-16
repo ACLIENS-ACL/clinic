@@ -165,3 +165,228 @@ The system serves different type of users (Admins, Patients, and Doctors)
     * View notfications
     * Change/Reset Password
 </details>
+
+# Code Examples 💽
+
+```javascript
+app.post('/remove-patient/:patientId', async (req, res) => {
+    const patientId = req.params.patientId;
+  
+    try {
+      await PatientsModel.findByIdAndRemove(patientId);
+      res.json({ message: 'Patient removed successfully.' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'An error occurred while removing the patient.' });
+    }
+  });
+```
+
+```javascript
+app.get('/doctor-requests', async (req, res) => {
+    try {
+      const doctorRequests = await DoctorsModel.find({ enrolled: "Pending" });
+      res.json(doctorRequests);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+```
+
+```javascript
+app.put('/update-doctor-info', async (req, res) => {
+  const token = req.header('Authorization');
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try{
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    const existingPatientEmail = await PatientsModel.findOne({ email: req.body.email.toLowerCase() });
+    const sameDoctor=await DoctorsModel.findOne({ username: decoded.username });
+    const existingDoctorEmail = await DoctorsModel.findOne({ email: req.body.email.toLowerCase() });
+    const existingAdminEmail = await AdminsModel.findOne({ email: req.body.email.toLowerCase() });
+    if (existingPatientEmail || (existingDoctorEmail&&(sameDoctor._id.toString()!=existingDoctorEmail._id.toString())) || existingAdminEmail) {
+      return res.status(400).json({ message: 'Email Associated with Another Account' });
+    }
+  
+    await DoctorsModel.updateOne({ username: decoded.username }, req.body);
+    return res.json({ message: 'Doctor info updated successfully.' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'An error occurred while updating doctor info.' });
+  }
+});
+```
+
+```javascript
+app.put("/update-family-member",async (req,res)=>{
+  const{name, nationalID, age, gender, relation}=req.body;
+  const token = req.header('Authorization');
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try{
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    await PatientsModel.updateOne({username:decoded.username},{$push: {familyMembers: {nationalID: nationalID, age:age, name:name, gender:gender, relation:relation}}});
+    res.json({message:"Family Member info added successfully."});
+
+  }catch(error){
+    console.error(error);
+    res.status(500).json({message:"An error occured while updating family members."});
+  }});
+
+```
+
+```javascript
+app.get('/patientsAppointments', async (req, res) => {
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token.replace('Bearer ', ''), "random");
+    
+    const patient = await PatientsModel.findOne({ username: decoded.username });
+
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    const appointments = await AppointmentsModel.find({ patient: patient._id });
+
+    // Create an array to store enhanced appointment information
+    const enhancedAppointments = [];
+
+    // Loop through the appointments and retrieve additional information
+    for (const appointment of appointments) {
+      // Find the doctor using the doctor's ID in the appointment
+      const doctor = await DoctorsModel.findOne({ _id: appointment.doctor });
+
+      if (doctor&&appointment.familyMember==null) {
+        // Enhance the appointment object with doctor's name
+        const enhancedAppointment = {
+          _id: appointment._id,
+          date: appointment.date,
+          status: appointment.status,
+          doctorName: doctor.name,
+        };
+        enhancedAppointments.push(enhancedAppointment);
+      } else  if (doctor) {
+        // Enhance the appointment object with doctor's name
+        const enhancedAppointment = {
+          _id: appointment._id,
+          date: appointment.date,
+          status: appointment.status,
+          doctorName: doctor.name,
+          familyMember: appointment.familyMember
+        };
+        enhancedAppointments.push(enhancedAppointment);
+      } else {
+        // Handle the case where the doctor is not found
+        console.error('Doctor not found for appointment ID:', appointment._id);
+      }
+    }
+
+    res.json(enhancedAppointments);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred while filtering appointments' });
+  }
+});
+```
+
+```javascript
+app.post('/wallet-payment', async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+
+    // Check if the token exists
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+      const { totalPaymentDue } = req.body;
+
+      // Find the patient by username
+      const patient = await PatientsModel.findOne({ username: decoded.username});
+
+      if (!patient) {
+          return res.status(404).json({ success: false, message: 'Patient not found.' });
+      }
+
+      // Check if the patient has enough money in the wallet
+      if (patient.wallet < totalPaymentDue) {
+          return res.status(400).json({ success: false, message: 'Insufficient funds in the wallet.' });
+      }
+
+      // Deduct the amount from the patient's wallet
+      patient.wallet -= totalPaymentDue;
+
+      // Save the updated patient
+      await patient.save();
+
+      // Return success response
+      res.json({ success: true, message: 'Wallet payment successful.' });
+  } catch (error) {
+      console.error('Error processing wallet payment:', error);
+      res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+});
+```
+
+```javascript
+app.post('/verify-otp', (req, res) => {
+  const { username, otp } = req.body;
+  // Get the stored OTP
+  const storedOTP = otpStorage[username];
+
+  if (!storedOTP.toString() || storedOTP.toString() !== otp) {
+    res.status(400).json({ message: 'OTP is not correct' });
+  } else {
+    res.status(200).json({ message: 'OTP verified successfully' });
+  }
+});
+```
+
+```html
+<div>
+            <Navbar />
+            <div style={styles.container}>
+                <div ref={messagesContainerRef} style={styles.messageContainer}>
+                    {messages.map((message, index) => (
+                        <div key={index} style={message.isYourMessage ? styles.yourMessage : styles.otherMessage}>
+                            {message.content}
+                        </div>
+                    ))}
+                </div>
+                <form style={styles.sendContainer} onSubmit={sendMessage}>
+                    <input
+                        type="text"
+                        id="message-input"
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        style={styles.messageInput}
+                    />
+                    <button type="submit" id="send-button" style={styles.sendButton}>
+                        Send
+                    </button>
+                </form>
+            </div>
+        </div>
+```
+# Installation 📩
+  * Open two separate terminals.
+  * In the first terminal, go to the Backend folder and type the command: `npm start`
+      ```bash
+      cd server && npm start
+      ```
+  * In the second terminal, go to the Frontend folder and type the command: `npm run dev`
+      ```bash
+      cd virtualClinic && npm run dev
+      ```
