@@ -2824,7 +2824,7 @@ app.post('/reschedule-appointment-patient', async (req, res) => {
       return res.status(404).json({ message: 'Appointment not found' });
     }
     const doctor=await DoctorsModel.findById(appointment.doctor);
-    doctor.availableSlots.pull(new Date(rescheduleDateTime));
+    await doctor.updateOne({ $pull: { availableSlots: rescheduleDateTime } });
     doctor.availableSlots.push(appointment.date);
     // Update the appointment with the new date
     appointment.date = new Date(rescheduleDateTime);
@@ -2837,6 +2837,7 @@ app.post('/reschedule-appointment-patient', async (req, res) => {
       date: appointment.date, 
       type:"resc"          // Replace with the desired date=
     });
+    await doctor.save();
     // Save the new Notification object to the database
     newNotification.save();
     // Send success response
