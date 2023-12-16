@@ -60,11 +60,12 @@ function MedicalHistory() {
         setSelectedFile(e.target.files[0]);
     };
 
-    const handleUpload = () => {
+    const handleUpload = async () => {
+        const token = localStorage.getItem('token');
         const formData = new FormData();
         formData.append('file', selectedFile, selectedFile.name);
 
-        axios.post('http://localhost:3001/upload', formData, {
+        await axios.post('http://localhost:3001/upload', formData, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -72,7 +73,11 @@ function MedicalHistory() {
             .then((response) => {
                 if (response.status === 200) {
                     // Refresh the list of uploaded files after a successful upload
-                    axios.get('http://localhost:3001/medicalRecords')
+                    axios.get('http://localhost:3001/medicalRecords', {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    })
                         .then((response) => {
                             setUploadedFiles(response.data);
                         })
@@ -87,6 +92,7 @@ function MedicalHistory() {
     };
 
     const handleDelete = (recordId) => {
+        const token = localStorage.getItem('token');
         axios.delete(`http://localhost:3001/delete/${recordId}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -181,7 +187,7 @@ function MedicalHistory() {
                                     </button>
 
                                 </li>
-                                <DocViewer pluginRenderers={DocViewerRenderers} style={{ height: "500px", width: "500px", margin:" 20px auto", }} documents={[{ uri: `http://localhost:3001/${file.filePath}` }]} />
+                                <DocViewer pluginRenderers={DocViewerRenderers} style={{ height: "500px", width: "500px", margin: " 20px auto", }} documents={[{ uri: `http://localhost:3001/${file.filePath}` }]} />
                             </div>
                         ))
                     ) : (
