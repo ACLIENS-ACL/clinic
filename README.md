@@ -503,5 +503,27 @@ Here is a list of all the routes available in the project:
   * In the second terminal, go to the Frontend folder and type the command: `npm run dev`
       ```bash
       cd virtualClinic && npm run dev
-      ```
-      
+      ``
+# Contribute
+
+## UI/UX Improvement
+
+We welcome contributions to enhance the user interface (UI) and user experience (UX) of our application. Feel free to suggest or implement improvements that can make the application more visually appealing, user-friendly, and efficient.
+
+### Video Call Connection
+
+One area for improvement is the seamless connection between doctors and patients during video calls. We envision a feature where doctors and patients can automatically connect to video calls without the need to manually enter peer js IDs. If you have ideas or skills to implement this enhancement, we encourage you to contribute.
+
+### Document Validation
+
+Another valuable contribution would be to enhance the document upload functionality. We aim to implement a validation mechanism to detect if the uploaded document contains the required information and is valid. This will ensure a more streamlined and error-free process for users.
+
+# Credits
+
+Special thanks to the following contributors and resources:
+
+- [YouTube - Login and Register using MERN](https://youtu.be/ZVyIIyZJutM?si=DBLOMQhy0oj-AGvW)
+  
+- [YouTube - Video Chat using WebRTC](https://youtu.be/DvlyzDZDEq4?si=YCSSbq0UQGF4uDhC)
+
+- [YouTube - Chat App using Socket.io and Node.js](https://youtu.be/rxzOqP9YwmM?si=tJ6b6x93pSjlqRVT)
