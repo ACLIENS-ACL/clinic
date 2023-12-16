@@ -382,13 +382,13 @@ app.post('/verify-otp', (req, res) => {
 ```
 # Installation 📩
   * Open two separate terminals.
-  * In the first terminal, go to the Backend folder and type the command: `npm start`
+  * In the first terminal, go to the Backend folder and type the command: `npm install`
       ```bash
-      cd server && npm start
+      cd server && npm install
       ```
-  * In the second terminal, go to the Frontend folder and type the command: `npm run dev`
+  * In the second terminal, go to the Frontend folder and type the command: `npm install`
       ```bash
-      cd virtualClinic && npm run dev
+      cd virtualClinic && npm install
       ```
       
 # API Reference 📋
@@ -489,7 +489,19 @@ Here is a list of all the routes available in the project:
 - **POST:** `/createVideoRoom`
 - **POST:** `/createVideoRoomDoctor`
 
-#Tests
+# Tests
 ![Testing doctor Requests](https://github.com/ACLIENS-ACL/clinic/blob/main/Testing%20doctor%20Requests.png)
 ![Testing Adding family Members](https://github.com/ACLIENS-ACL/clinic/blob/main/Testing%20Adding%20family%20Members.png)
 ![Testing health Packages](https://github.com/ACLIENS-ACL/clinic/blob/main/Testing%20health%20Packages.png)
+
+# How to Use
+  * Open two separate terminals.
+  * In the first terminal, go to the Backend folder and type the command: `npm start`
+      ```bash
+      cd server && npm start
+      ```
+  * In the second terminal, go to the Frontend folder and type the command: `npm run dev`
+      ```bash
+      cd virtualClinic && npm run dev
+      ```
+      
