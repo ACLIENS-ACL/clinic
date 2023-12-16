@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
+import Navbar from './navbar';
 
 function AdminDashboard() {
+    const navigate = useNavigate();
     useEffect(() => {
         // Fetch admin data from the server
         axios.get(`http://localhost:3001/get-user-type`).then((response) => {
@@ -14,7 +15,6 @@ function AdminDashboard() {
             }
         });
     }, []);
-
     const [userData, setUserData] = useState(null);
     const [selectedFamilyMember, setSelectedFamilyMember] = useState(null);
     const [selectedFamilyMemberDate, setSelectedFamilyMemberDate] = useState(null);
@@ -22,6 +22,8 @@ function AdminDashboard() {
     const [selectedFamilyMemberPackage, setSelectedFamilyMemberPackage] = useState(null);
     const [familyMembers, setFamilyMembers] = useState([]);
     const [familyMemberPackage, setFamilyMemberPackage] = useState(null);
+
+
     useEffect(() => {
         // Fetch admin data from the server
         axios.get(`http://localhost:3001/get-my-package`).then((response) => {
@@ -34,20 +36,22 @@ function AdminDashboard() {
             setFamilyMembers(response.data);
         });
     });
+
+
     const handleCancelSubscription = () => {
         axios.post('http://localhost:3001/cancel-subscription')
     }
     const handleFamilyCancelSubscription = async () => {
         await axios.post(`http://localhost:3001/cancel-family-subscription/${selectedFamilyMember}`);
         fetchFamilyMemberSubscription(selectedFamilyMember);
-    }    
+    }
     const handleFamilyMemberSelect = (selectedOption) => {
         if (selectedOption) {
             // Parse the JSON string back into an object
             const selectedMember = JSON.parse(selectedOption);
-
             // Access the subscribedPackage property and set it to familyMember
             setSelectedFamilyMemberPackage(selectedMember.subscribedPackage);
+            setSelectedFamilyMemberCanceled(selectedMember.canceled)
             setSelectedFamilyMember(selectedMember._id);
         } else {
             // Handle the case when no family member is selected
@@ -81,6 +85,7 @@ function AdminDashboard() {
     }, [selectedFamilyMemberPackage]);
     return (
         <div>
+            <Navbar />
             <div>
                 <h2>Subscribed Package and Details</h2>
                 {userData && userData.package && (
@@ -116,7 +121,7 @@ function AdminDashboard() {
                 <select onChange={(e) => handleFamilyMemberSelect(e.target.value)}>
                     <option value="">Select a Family Member</option>
                     {familyMembers.map((member, index) => (
-                        <option key={index} value={JSON.stringify(member)}>
+                        <option key={index} value={JSON.stringify(member)} >
                             {member.name}
                         </option>
                     ))}
@@ -138,7 +143,7 @@ function AdminDashboard() {
                         {selectedFamilyMemberCanceled && (
                             <div>
                                 <h3>Status: Canceled</h3>
-                                <p>Cancelation Date: {userData.canceled}</p>
+                                <p>Cancelation Date: {selectedFamilyMemberCanceled}</p>
                             </div>
                         )}
                         {!selectedFamilyMemberCanceled && (

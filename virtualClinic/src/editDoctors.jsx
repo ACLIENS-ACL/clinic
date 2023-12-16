@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
 
 function RemoveDoctors() {
   const navigate = useNavigate();
@@ -79,6 +80,7 @@ function RemoveDoctors() {
 
   return (
     <div>
+      <Navbar/>
       <h2 style={headerStyles}>Doctors</h2>
       {message && <div style={{ backgroundColor: 'red', color: 'white', padding: '10px', borderRadius: '5px' }}>{message}</div>}
       <table style={tableStyles}>

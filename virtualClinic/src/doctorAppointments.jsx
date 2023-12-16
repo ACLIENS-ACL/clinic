@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
 
 const containerStyle = {
   fontFamily: 'Arial, sans-serif',
@@ -47,6 +48,8 @@ function AppointmentsList() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
+  const [followUpDateTime, setFollowUpDateTime] = useState('');
+
   useEffect(() => {
     // Fetch admin data from the server
     axios.get(`http://localhost:3001/get-user-type`)
@@ -58,6 +61,7 @@ function AppointmentsList() {
         }
       })
   }, []);
+
   useEffect(() => {
     // Make an Axios GET request to fetch the patient's appointments with doctor names and statuses
     axios.get('http://localhost:3001/doctorsAppointments')
@@ -71,6 +75,25 @@ function AppointmentsList() {
       });
   }, []);
 
+  const handleFollowUp = async (appointmentId) => {
+    try {
+      // Make an Axios POST request to schedule follow-up
+      const response = await axios.post('http://localhost:3001/schedule-follow-up', {
+        originalAppointmentId: appointmentId,
+        followUpDateTime,
+      });
+
+      if (response.status === 200) {
+        console.log('Follow-up scheduled successfully');
+        window.location.reload();
+      } else {
+        console.log('Failed to schedule follow-up');
+      }
+    } catch (error) {
+      console.error('An error occurred while scheduling follow-up:', error);
+    }
+  };
+
   const filterAppointments = () => {
     let filteredAppointments = [...appointments];
 
@@ -78,14 +101,13 @@ function AppointmentsList() {
       filteredAppointments = filteredAppointments.filter(appointment => appointment.status === statusFilter);
     }
     if (startDateFilter) {
-        filteredAppointments = filteredAppointments.filter(appointment => new Date(appointment.date) >= new Date(startDateFilter));
-      }
-      if (endDateFilter) {
-        const nextDay = new Date(endDateFilter);
-        nextDay.setDate(nextDay.getDate() + 1);
-        filteredAppointments = filteredAppointments.filter(appointment => new Date(appointment.date) < new Date(nextDay));
-      }
-    
+      filteredAppointments = filteredAppointments.filter(appointment => new Date(appointment.date) >= new Date(startDateFilter));
+    }
+    if (endDateFilter) {
+      const nextDay = new Date(endDateFilter);
+      nextDay.setDate(nextDay.getDate() + 1);
+      filteredAppointments = filteredAppointments.filter(appointment => new Date(appointment.date) < new Date(nextDay));
+    }
 
     return filteredAppointments;
   };
@@ -102,6 +124,7 @@ function AppointmentsList() {
 
   return (
     <div style={containerStyle}>
+      <Navbar />
       <h2 style={headerStyle}>Appointments</h2>
 
       <div style={filterContainerStyle}>
@@ -147,6 +170,28 @@ function AppointmentsList() {
               <div>
                 <strong>Patient:</strong> {appointment.patientName}<br />
               </div>
+              {
+                appointment.familyMember && (
+                  <div>
+                    <strong>For Family Memebr:</strong> {appointment.familyMember.name}<br />
+                  </div>
+                )
+              }
+              {appointment.status === 'completed' && !appointment.followedUp && (
+                <div>
+                  <label>
+                    Follow-up Date:
+                    <input
+                      type="datetime-local"
+                      value={followUpDateTime}
+                      onChange={(e) => setFollowUpDateTime(e.target.value)}
+                    />
+                  </label>
+                  <button onClick={() => handleFollowUp(appointment._id)}>
+                    Schedule Follow-up
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

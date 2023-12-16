@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Signup from './signup';
 import Login from './login';
@@ -22,6 +22,14 @@ import DoctorAppointments from './doctorAppointments'
 import Prescriptions from './presList'
 import HealthPackages from './availpackages'
 import Subscriptions from './subscriptions'
+import Payment from './payment'
+import Appoint from './appointments'
+import Password from './changePassowrd'
+import Reset from './resetPassword'
+import MedicalRecords from './medicalRecords'
+import Contract from './contract'
+import HealthRecords from './healthRecords'
+import PaymentTwo from './paymentTwo';
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 function App() {
@@ -50,6 +58,14 @@ function App() {
         <Route path="/myPrescriptions" element={<Prescriptions />} />
         <Route path="/healthPackages" element={<HealthPackages />} />
         <Route path="/mySubscription" element={<Subscriptions />} />
+        <Route path="/pay/:totalPaymentDue/:type/:packageId/:self/:selectedFamilyMembers" element={<Payment />} />
+        <Route path="/payAppointment/:totalPaymentDue/:type/:doctorId/:dateTime/:familyMemberId" element={<PaymentTwo />} />
+        <Route path="/addAppointments" element={<Appoint />} />
+        <Route path="/changePassword" element={<Password />} />
+        <Route path="/resetPassword" element={<Reset />} />
+        <Route path="/modifyMedicalRecord" element={<MedicalRecords />} />
+        <Route path="/viewHealthRecords" element={<HealthRecords />} />
+        <Route path="/contract" element={<Contract />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>

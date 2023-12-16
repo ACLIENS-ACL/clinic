@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
 
 function RemovePatients() {
   const navigate = useNavigate();
@@ -84,6 +85,7 @@ function RemovePatients() {
 
   return (
     <div style={containerStyles}>
+      <Navbar/>
       <h2 style={headerStyles}>Patients</h2>
       {message && <div className="alert alert-danger">{message}</div>}
       <table style={{ width: '100%' }}>

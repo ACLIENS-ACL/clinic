@@ -6,13 +6,23 @@ const PatientsSchema = new mongoose.Schema({
   email: String,
   password: String,
   dob: Date,
+  nationalID:String,
   gender: String,
   mobileNumber: String,
   emergencyContactName: String,
   emergencyContactNumber: String,
+  wallet: {
+    type: Number,
+    default: 0.0
+  },
   familyMembers: {
     type: [
       {
+        account:{
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'patients',
+          default: null,
+        },
         name: String,
         nationalID: String,
         age: Number,
@@ -31,13 +41,21 @@ const PatientsSchema = new mongoose.Schema({
           type: Date,
           default: null,
         },
-         
+        healthRecords: {
+          type: [Object], // Array of strings for health records
+          default: [], // Default to an empty array
+        }   
       }
     ],
     default: [], // Default to an empty array
   },
+  medicalHistory: [{
+    fileName: String,
+    filePath:Object
+  }],
+  default: [],
   healthRecords: {
-    type: [String], // Array of strings for health records
+    type: [Object], // Array of strings for health records
     default: [], // Default to an empty array
   },
   subscribedPackage: {

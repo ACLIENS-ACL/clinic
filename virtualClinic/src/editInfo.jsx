@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
 
 function EditInfo() {
   const [doctorInfo, setDoctorInfo] = useState({
@@ -46,6 +47,7 @@ function EditInfo() {
 
   return (
     <div style={containerStyle}>
+      <Navbar/>
       <h1>Edit Doctor Info</h1>
       <form onSubmit={handleSubmit}>
         <div style={inputContainerStyle}>

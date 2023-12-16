@@ -8,13 +8,12 @@ const PackagesModel = require('./models/packages');
 const AppointmentsModel=require('./models/appointment');
 const PrescriptionModel=require('./models/prescriptions');
 const AppointmentModel = require('./models/appointment');
+const ChatModel = require('../models/Chat');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs');
 const uploadDirectory = 'uploads';
-const PDFDocument = require('pdfkit');
-
 
 if (!fs.existsSync(uploadDirectory)) {
   fs.mkdirSync(uploadDirectory);
@@ -42,14 +41,8 @@ var logged = {
   type: ""
 };
 
-//mongoose.connect('mongodb://localhost:27017/clinic');
-mongoose.connect('mongodb://0.0.0.0:27017/clinic', { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch(error => {
-    console.error('Error connecting to MongoDB:', error);
-  });
+mongoose.connect('mongodb://localhost:27017/clinic');
+
 
 // Create a transporter with your email service credentials
 const transporter = nodemailer.createTransport({
@@ -713,229 +706,71 @@ app.get('/get-doctor-info', async (req, res) => {
 //view a list of all my Prescriptions   (Req 54)
 
 app.get('/get-prescriptions/', async (req, res) => {
+  /*const ObjectId = mongoose.Types.ObjectId;
+  const prescriptionsData = [
+  {
+    patientID: new ObjectId("6529833f0e7babc4174c5f91"),
+    doctorID: new ObjectId("652983a00e7babc4174c5f97"),
+    date: new Date(),
+    medicines: [
+      { name: "Aspirin", type: "Tablet" },
+      { name: "Ibuprofen", type: "Capsule" },
+    ],
+  },
+  {
+    patientID: new ObjectId("6529833f0e7babc4174c5f92"),
+    doctorID: new ObjectId("652983a00e7babc4174c5f97"),
+    date: new Date(),
+    medicines: [
+      { name: "Lisinopril", type: "Tablet" },
+    ],
+  },
+  {
+    patientID: new ObjectId("6529833f0e7babc4174c5f91"),
+    doctorID: new ObjectId("652983a00e7babc4174c5f97"),
+    date: new Date(),
+    medicines: [],
+  },
+];
+
+  await PrescriptionModel.create(prescriptionsData);
+  */
   try {
-    const userType = logged.type;
+    // Find the patient with the given username
+     // Replace with the actual logged username
+    const patient = await PatientsModel.findOne({ username: logged.username });
 
-    if (userType === 'patient') {
-      const patient = await PatientsModel.findOne({ username: logged.username });
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
 
-      if (!patient) {
-        return res.status(404).json({ message: 'Patient not found' });
-      }
-      const patientId = patient._id; // Extract the patient's ObjectId
-
-      // Fetch all prescriptions from the database with _id included
-      const allPrescriptions = await PrescriptionModel.find({})
+    // Find prescriptions for the patient
+    const prescriptions = await PrescriptionModel
+      .find({ patientID: patient._id })
+      .select('doctorID date medicines') // Select the fields you need
       .populate({
-        path:'doctorID',
-        select:'name',
-        model:DoctorsModel,
-
-      })
-      .exec();
-
-      // Filter prescriptions based on the patient's ID
-      const prescriptions = allPrescriptions.filter((prescription) => {
-        return prescription.patientID.toString() === patientId.toString();
+        path: 'doctorID',
+        select: 'name', // Select the doctor's name
+        model: DoctorsModel,
       });
 
-      if (!prescriptions || prescriptions.length === 0) {
-        return res.status(404).json({ message: 'Prescriptions not found for this patient' });
-      }
-
-      // Process the prescriptions to add the 'status' field
-      const updatedPrescriptions = prescriptions.map((prescription) => {
-        const status = prescription.medicines.length > 0 ? 'filled' : 'unfilled';
-        return {
-          _id: prescription._id,
-          medicines: prescription.medicines,
-          doctorName: prescription.doctorID.name,
-          date: prescription.date,
-          status: status,
-        };
-      });
-      res.json({ message: 'hello', prescriptions: updatedPrescriptions });
-    } 
-    
-    else if (userType === 'doctor') {
-      const doctor = await DoctorsModel.findOne({ username: logged.username });
-
-      if (!doctor) {
-        return res.status(404).json({ message: 'Doctor not found' });
-      }
-      const doctorId = doctor._id; // Extract the doctor's ObjectId
-
-      // Fetch all prescriptions from the database with _id included
-      const allPrescriptions = await PrescriptionModel.find({})
-      .populate({
-        path: 'patientID',
-        select: 'name',
-        model: PatientsModel,
-      })
-      .exec();
-
-      // Filter prescriptions based on the doctor's ID
-      const prescriptions = allPrescriptions.filter((prescription) => {
-        return prescription.doctorID.toString() === doctorId.toString();
-      });
-
-      if (!prescriptions || prescriptions.length === 0) {
-        return res.status(404).json({ message: 'Prescriptions not found for this doctor' });
-      }
-
-      // Process the prescriptions to add the 'status' field
-      const updatedPrescriptions = prescriptions.map((prescription) => {
-        const status = prescription.medicines.length > 0 ? 'filled' : 'unfilled';
-        return {
-          _id: prescription._id,
-          medicines: prescription.medicines,
-          patientName: prescription.patientID.name,
-          date: prescription.date,
-          status: status,
-          paymentMethod: prescription.paymentMethod, // Include the payment method
-
-        };
-      });
-      res.json({ message: 'hello', prescriptions: updatedPrescriptions });
-    } else {
-      console.log('error');
-      res.status(400).json({ message: 'Invalid user type' });
-    }
-  } catch (error) {
-    console.error('Error: ', error.message);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-//Select Payment for prescription (REQ 58)
-app.post('/select-payment/:prescriptionId', async (req, res) => {
-  try {
-    const { prescriptionId } = req.params;
-    const { paymentMethod } = req.body;
-
-    // Find the prescription by ID and update the payment method
-    const updatedPrescription = await PrescriptionModel.findByIdAndUpdate(
-      prescriptionId,
-      { $set: { paymentMethod } },
-      { new: true }
-    );
-
-    if (!updatedPrescription) {
-      return res.status(404).json({ message: 'Prescription not found' });
-    }
-
-    res.status(200).json({ message: 'Payment method updated successfully' });
-  } catch (error) {
-    console.error('Error updating payment method:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-//select a prescription from my list of perscriptions (REQ 56)
-app.get('/select-prescriptions/:_id', async (req, res) => {
-  try {
-    const prescriptionID = req.params._id;
-    const prescription = await PrescriptionModel.findById(prescriptionID);
-
-    if (!prescription) {
-      return res.status(404).json({ message: 'Prescription not found' });
-    }
-
-    res.status(200).json({ message: 'Prescription selected successfully' ,prescription});
-  } catch (error) {
-    console.error('Error: ', error.message);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-app.get('/view-selected-prescription/:_id', async (req, res) => {
-  try {
-      const userType = logged.type;
-
-      if (userType !== 'patient') {
-          return res.status(403).json({ message: 'Access forbidden' });
-      }
-
-      const patient = await PatientsModel.findOne({ username: logged.username });
-
-      if (!patient) {
-          return res.status(404).json({ message: 'Patient not found' });
-      }
-
-    const prescriptionID = req.params._id;
-    const prescription = await PrescriptionModel.findById(prescriptionID)
-    .populate({
-              path: 'doctorID',
-              select: 'name',
-              model: DoctorsModel,
-          })
-          .exec();
-      
-    if (!mongoose.Types.ObjectId.isValid(prescriptionID)) {
-        return res.status(400).json({ message: 'Invalid prescription ID' });
-      }
-    if (!prescription) {
-      return res.status(404).json({ message: 'Selected prescription details not found' });
-    }
-    console.log(prescriptionID);
-
-      const processedPrescription = {
-          _id: prescription._id,
-          medicines: prescription.medicines,
-          doctorName: prescription.doctorID.name,
-          date: prescription.date,
-          status: prescription.medicines.length > 0 ? 'filled' : 'unfilled',
+    // Process the prescriptions to add the 'status' field
+    const updatedPrescriptions = prescriptions.map((prescription) => {
+      const status = prescription.medicines.length > 0 ? 'filled' : 'unfilled';
+      return {
+        medicines: prescription.medicines,
+        doctorName: prescription.doctorID.name,
+        date: prescription.date,
+        status: status,
       };
-
-      res.json({ message: 'Selected prescription details', prescription: processedPrescription });
-  } catch (error) {
-      console.error('Error: ', error.message);
-      res.status(500).json({ message: 'Internal server error' });
-  }
-});
-//download 
-app.get('/download-prescription/:_id', async (req, res) => {
-  try {
-    const prescriptionID = req.params._id;
-    const prescription = await PrescriptionModel.findById(prescriptionID)
-      .populate('doctorID', 'name')
-      .populate('patientID', 'name');
-      
-    if (!mongoose.Types.ObjectId.isValid(prescriptionID)) {
-        return res.status(400).json({ message: 'Invalid prescription ID' });
-      }
-    if (!prescription) {
-      return res.status(404).json({ message: 'Prescription not found' });
-    }
-    console.log(prescriptionID);
-
-    const doc = new PDFDocument();
-
-    // Prepare formatted date for filename
-    const formattedDate = prescription.date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-
-    // Pipe the PDF to response
-    res.setHeader('Content-Disposition', `attachment; filename="Prescription_${formattedDate}.pdf"`);
-    res.setHeader('Content-Type', 'application/pdf');
-
-    doc.pipe(res);
-
-    // Write prescription details to the PDF
-    doc.fontSize(12).text(`Prescription Details\n\n`);
-    doc.fontSize(10).text(`Doctor: ${prescription.doctorID.name}\n`);
-    doc.fontSize(10).text(`Patient: ${prescription.patientID.name}\n`);
-    doc.fontSize(10).text(`Date: ${prescription.date.toDateString()}\n\n`);
-    doc.fontSize(10).text(`Medicines:\n`);
-
-    prescription.medicines.forEach((medicine, index) => {
-      doc.fontSize(10).text(`${index + 1}. ${medicine.name}\n`);
     });
-
-    doc.end();
-    
-  } 
-  catch (error) {
-    console.error('Error generating prescription PDF:', error);
+    res.json(updatedPrescriptions);
+  } catch (error) {
+    console.error('Error: ', error.message);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 //filter prescriptions based on date or doctor or filled or unfilled   (Req 55)
 
@@ -975,6 +810,22 @@ app.get('/filter-prescriptions', async (req, res) => {
 });
 
 
+//select a prescription from my list of perscriptions (REQ 56)
+app.get('/select-prescriptions/:prescriptionID', async (req, res) => {
+  try {
+    const prescriptionID = req.params.prescriptionID;
+    const prescription = await PrescriptionModel.findById(prescriptionID);
+
+    if (!prescription) {
+      return res.status(404).json({ message: 'Prescription not found' });
+    }
+
+    res.status(200).json({prescription});
+  } catch (error) {
+    console.error('Error: ', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 app.put("/update-family-member",async (req,res)=>{
   const{name, nationalID, age, gender, relation}=req.body;
   try{
@@ -985,8 +836,6 @@ app.put("/update-family-member",async (req,res)=>{
     console.error(error);
     res.status(500).json({message:"An error occured while updating family members."});
   }});
-
-
   app.put("/add-existing-family-member",async (req,res)=>{
     const{email, phone, relation}=req.body;
     const user=await PatientsModel.findOne({username:logged.username});
@@ -1819,26 +1668,51 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-//upload/remove documents (PDF,JPEG,JPG,PNG) for my medical history (Req 2)
-const fs = require('fs');
-const path = require('path');
+app.get('/get-health-records/', async (req, res) => {
+  try {
+    // Fetch health records for the specific patient
+    const patient = await PatientsModel.findOne({username:logged.username});
 
-app.put('/upload-document', async (req, res) => {
-  const { document } = req.body;
-  const { type, data, filename } = document;
-  const allowedTypes = ['pdf', 'jpeg', 'jpg', 'png'];
-  const extension = filename.split('.').pop().toLowerCase();
+    if (!patient) {
+      return res.status(404).json({ success: false, message: 'Patient not found' });
+    }
 
-  if (!allowedTypes.includes(extension)) {
-    return res.status(400).send('Invalid file type');
+    res.json(patient.healthRecords);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
+});
+app.get('/uploads/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, 'uploads', filename); // Adjust the directory as needed
 
-  const filePath = path.join(__dirname, 'medical-history', `${filename}`);
-  const fileExists = fs.existsSync(filePath);
+  if (fs.existsSync(filePath)) {
+    res.download(filePath, filename, (err) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Internal Server Error');
+      }
+    });
+  } else {
+    res.status(404).send('File not found');
+  }
+});
 
-  if (type === 'add') {
-    if (fileExists) {
-      return res.status(400).send('File already exists');
+app.delete('/delete/:recordId', async (req, res) => {
+  try {
+    const { recordId } = req.params;
+    const patient = await PatientsModel.findOne({ username: logged.username }).exec();
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    // Find the index of the record with the specified recordId
+    const recordIndex = patient.medicalHistory.findIndex((record) => record._id.toString() === recordId);
+
+    if (recordIndex === -1) {
+      return res.status(404).json({ error: 'Medical record not found' });
     }
 
     // Remove the record at the specified index
@@ -1996,178 +1870,37 @@ app.post('/decide-follow-up-request', async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
-// doctor reschedule appointment
-app.post('/reschedule-appointment', async (req, res) => {
+
+
+// chat with a doctor/patient (68)
+
+app.post('/initiate-chat', async (req, res) => {
+  const { doctorId, patientId } = req.body;
+
   try {
-    const { appointmentId, newDateTime } = req.body;
-
-    if (!appointmentId || !newDateTime) {
-      return res.status(400).json({ message: 'Both appointmentId and newDateTime must be provided' });
-    }
-
-    const appointment = await AppointmentsModel.findById(appointmentId);
-
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-
-    appointment.date = new Date(newDateTime);
-    await appointment.save();
-
-    return res.status(200).json({ message: 'Appointment rescheduled successfully', appointment });
-  } catch (error) {
-    console.error('Error rescheduling appointment:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-});
-//patient recieve refund when doctor cancels an appointment
-app.post('/refund', async (req, res) => {
-  try {
-    const { appointmentId } = req.body;
-
-    if (!appointmentId) {
-      return res.status(400).json({ message: 'appointmentId must be provided' });
-    }
-
-    const appointment = await AppointmentsModel.findById(appointmentId);
-
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-
-    const patient = await PatientsModel.findById(appointment.patient);
-
-    if (!patient) {
-      return res.status(404).json({ message: 'Patient not found' });
-    }
-
-    patient.wallet += appointment.totalPaymentDue;
-    await patient.save();
-
-    return res.status(200).json({ message: 'Refund successful', patient });
-  } catch (error) {
-    console.error('Error processing refund:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-});
-//patient can select an appointment's date and time for themselves or a family member
-app.post('/select-appointment', async (req, res) => {
-  try {
-    const { doctorId, dateTime, familyMemberId } = req.body;
-
-    if (!doctorId || !dateTime) {
-      return res.status(400).json({ message: 'Both doctorId and dateTime must be provided' });
-    }
-
-    const patient = await PatientsModel.findOne({ username: logged.username });
-
-    if (!patient) {
-      return res.status(404).json({ message: 'Patient not found' });
-    }
-
-    const familyMember = familyMemberId ? patient.familyMembers.id(familyMemberId) : null;
-
-    if (familyMemberId && !familyMember) {
-      return res.status(404).json({ message: 'Family member not found' });
-    }
-
-    const appointment = new AppointmentsModel({
+    // Check if the patient has had at least one appointment with the specified doctor
+    const hasAppointment = await AppointmentModel.exists({
       doctor: doctorId,
-      patient: patient._id,
-      date: new Date(dateTime),
-      familyMember: familyMember ? familyMember : null
+      patient: patientId,
     });
 
-    await appointment.save();
+    if (!hasAppointment) {
+      return res.status(403).json({ message: 'you must have had at least one appointment with this doctor' });
+    }
 
-    return res.status(200).json({ message: 'Appointment selected successfully', appointment });
+    // Create a new chat
+    const chat = new ChatModel({
+      doctor: doctorId,
+      patient: patientId,
+    });
+
+    await chat.save();
+
+    res.json({ message: 'Chat initiated successfully' });
   } catch (error) {
-    console.error('Error selecting appointment:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
-
-
-// reschedule an appointment for myself or for a family member
-app.put('/reschedule-appointment', async (req, res) => {
-  const { appointmentId, date } = req.body;
-  try {
-    const appointment = await AppointmentModel.findById(appointmentId);
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-    appointment.date = date;
-    await appointment.save();
-    res.status(200).json({ message: 'Appointment rescheduled successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-}
-);
-
-// reschedule an appointment for a patient
-app.put('/reschedule-appointment/:appointmentId', async (req, res) => {
-  const appointmentId = req.params.appointmentId;
-  const { date } = req.body;
-  try {
-    const appointment = await AppointmentModel.findById(appointmentId);
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-    appointment.date = date;
-    await appointment.save();
-    res.status(200).json({ message: 'Appointment rescheduled successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-}
-);
-
-// receive a notification that my appointment is cancelled or rescheduled on the system and by mail 
-app.post('/cancel-appointment', async (req, res) => {
-  const { appointmentId } = req.body;
-  try {
-    const appointment = await AppointmentModel.findById(appointmentId);
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-    appointment.status = 'cancelled';
-    await appointment.save();
-
-    // Send notification by mail (3ala hasb hnb3t b eh b2a)
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.example.com', // SMTP server host
-      port: 587, // SMTP server port
-      secure: false, // Set to true if using a secure connection (e.g. SSL/TLS)
-      auth: {
-        user: 'your-email@example.com', // Your email address
-        pass: 'your-password', // Your email password
-      },
-    });
-
-    const mailOptions = {
-      from: 'your-email@example.com',
-      to: 'recipient-email@example.com',
-      subject: 'Appointment Update',
-      text: 'Your appointment has been cancelled.',
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Failed to send notification by mail' });
-      } else {
-        console.log('Notification sent by mail:', info.response);
-        res.status(200).json({ message: 'Appointment cancelled successfully' });
-      }
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
 
 app.listen(3001,'localhost')

@@ -26,7 +26,13 @@ const PrescriptionSchema = new mongoose.Schema({
       }
     ],
     default: []
-  }
+  },
+
+  paymentMethod: {
+    type: String,
+    enum: ['wallet', 'creditCard'], 
+    required: true,
+  },
 });
 
 // Define a virtual attribute for 'status'

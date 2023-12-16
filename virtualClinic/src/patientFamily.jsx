@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Navbar from './navbar';
 
 const containerStyle = {
   fontFamily: 'Arial, sans-serif',
@@ -79,6 +80,7 @@ function PatientFamilyMembers() {
   }
   return (
     <div style={containerStyle}>
+      <Navbar/>
       <h1 style={headerStyle}>Family Members</h1>
       {familyMembers.length === 0 ? (
         <p>No family members found.</p>

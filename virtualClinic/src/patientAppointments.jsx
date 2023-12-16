@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
 
 const containerStyle = {
   fontFamily: 'Arial, sans-serif',
@@ -58,7 +59,7 @@ function AppointmentsList() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
- 
+
   useEffect(() => {
     // Make an Axios GET request to fetch the patient's appointments with doctor names and statuses
     axios.get('http://localhost:3001/patientsAppointments')
@@ -79,14 +80,14 @@ function AppointmentsList() {
       filteredAppointments = filteredAppointments.filter(appointment => appointment.status === statusFilter);
     }
     if (startDateFilter) {
-        filteredAppointments = filteredAppointments.filter(appointment => new Date(appointment.date) >= new Date(startDateFilter));
-      }
-      if (endDateFilter) {
-        const nextDay = new Date(endDateFilter);
-        nextDay.setDate(nextDay.getDate() + 1);
-        filteredAppointments = filteredAppointments.filter(appointment => new Date(appointment.date) < new Date(nextDay));
-      }
-    
+      filteredAppointments = filteredAppointments.filter(appointment => new Date(appointment.date) >= new Date(startDateFilter));
+    }
+    if (endDateFilter) {
+      const nextDay = new Date(endDateFilter);
+      nextDay.setDate(nextDay.getDate() + 1);
+      filteredAppointments = filteredAppointments.filter(appointment => new Date(appointment.date) < new Date(nextDay));
+    }
+
 
     return filteredAppointments;
   };
@@ -103,6 +104,7 @@ function AppointmentsList() {
 
   return (
     <div style={containerStyle}>
+      <Navbar />
       <h2 style={headerStyle}>Appointments</h2>
 
       <div style={filterContainerStyle}>
@@ -148,6 +150,11 @@ function AppointmentsList() {
               <div>
                 <strong>Doctor:</strong> {appointment.doctorName}<br />
               </div>
+              {appointment.familyMember && (
+                <div>
+                  <strong>For Family Member:</strong> {appointment.familyMember.name}<br />
+                </div>
+              )}
             </li>
           ))}
         </ul>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
 
 const containerStyles = {
   maxWidth: '800px',
@@ -46,6 +47,27 @@ const rejectButtonStyles = {
   cursor: 'pointer',
 };
 function DoctorRequests() {
+
+  const handleClick = (request) => {
+    // Assuming `idDocument` is an object with a `fileName` property
+    const filename = request;
+    // Navigate to the document URL
+    axios.get(`http://localhost:3001/uploads/${filename}`, { responseType: 'blob' })
+      .then(response => {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        console.error(error);
+      });
+  };
+
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [message, setMessage] = useState('');
@@ -100,6 +122,7 @@ function DoctorRequests() {
 
   return (
     <div style={containerStyles}>
+      <Navbar />
       <h2 style={headerStyles}>Doctor Requests</h2>
       {message && <div className="alert alert-danger">{message}</div>}
       <ul>
@@ -117,14 +140,38 @@ function DoctorRequests() {
                     key !== '__v' &&
                     key !== '_id' &&
                     key !== 'availableSlots' &&
-                    key !== 'username' 
+                    key !== 'username' &&
+                    key !== 'wallet'
                 )
                 .map((key) => (
                   <li key={key}>
-                    {key === 'extraNotes' ? 'Professional Experience' : key}:
-                    {key === 'dob' ? new Date(request[key]).toISOString().split('T')[0] : request[key]}
+                    {key === 'extraNotes' ? 'Professional Experience' : key === 'idDocument' ? 'ID Document' : key ==='medicalDegree'? 'Medical Degree' : key ==='medicalLicenses'? 'Medical Licenses' : key}:
+                    {key === 'dob'
+                      ? new Date(request[key]).toISOString().split('T')[0]
+                      : key === 'idDocument' ? (
+                        <a href="#" onClick={() => handleClick(request.idDocument.fileName)}>
+                          View Document
+                        </a>
+                      ) : key === 'medicalDegree' ? (
+                        <a href="#" onClick={() => handleClick(request.medicalDegree.fileName)}>
+                          View Medical Degree
+                        </a>
+                      ) : key === 'medicalLicenses' ? (
+                        <ul>
+                          {request.medicalLicenses.map((license, index) => (
+                            <li key={index}>
+                              <a href="#" onClick={() => handleClick(license.fileName)}>
+                                View License {index + 1}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        request[key]
+                      )}
                   </li>
                 ))}
+
             </ul>
             <button style={buttonStyles} onClick={() => handleApprove(request._id)}>Approve</button>
             <button style={rejectButtonStyles} onClick={() => handleReject(request._id)}>Reject</button>
