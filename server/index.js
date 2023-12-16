@@ -983,6 +983,7 @@ app.put('/change-password', async (req, res) => {
 //upload/remove documents (PDF,JPEG,JPG,PNG) for my medical history (Req 2)
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 app.put('/upload-document', async (req, res) => {
   const { document } = req.body;
@@ -1073,6 +1074,86 @@ app.post('/accept-employment-contract', async (req, res) => {
   res.status(200).send(`Employment contract acceptance status updated for user ${userId}.`);
 });
 
+// reschedule an appointment for myself or for a family member
+app.put('/reschedule-appointment', async (req, res) => {
+  const { appointmentId, date } = req.body;
+  try {
+    const appointment = await AppointmentModel.findById(appointmentId);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    appointment.date = date;
+    await appointment.save();
+    res.status(200).json({ message: 'Appointment rescheduled successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+);
+
+// reschedule an appointment for a patient
+app.put('/reschedule-appointment/:appointmentId', async (req, res) => {
+  const appointmentId = req.params.appointmentId;
+  const { date } = req.body;
+  try {
+    const appointment = await AppointmentModel.findById(appointmentId);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    appointment.date = date;
+    await appointment.save();
+    res.status(200).json({ message: 'Appointment rescheduled successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+);
+
+// receive a notification that my appointment is cancelled or rescheduled on the system and by mail 
+app.post('/cancel-appointment', async (req, res) => {
+  const { appointmentId } = req.body;
+  try {
+    const appointment = await AppointmentModel.findById(appointmentId);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    appointment.status = 'cancelled';
+    await appointment.save();
+
+    // Send notification by mail (3ala hasb hnb3t b eh b2a)
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.example.com', // SMTP server host
+      port: 587, // SMTP server port
+      secure: false, // Set to true if using a secure connection (e.g. SSL/TLS)
+      auth: {
+        user: 'your-email@example.com', // Your email address
+        pass: 'your-password', // Your email password
+      },
+    });
+
+    const mailOptions = {
+      from: 'your-email@example.com',
+      to: 'recipient-email@example.com',
+      subject: 'Appointment Update',
+      text: 'Your appointment has been cancelled.',
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to send notification by mail' });
+      } else {
+        console.log('Notification sent by mail:', info.response);
+        res.status(200).json({ message: 'Appointment cancelled successfully' });
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 
   app.listen(3001,'localhost')
