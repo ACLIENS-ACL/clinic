@@ -1,20 +1,126 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
+const axios = require('axios');
 const PatientsModel = require('./models/patients');
 const DoctorsModel = require('./models/doctors');
 const AdminsModel = require('./models/admins');
 const PackagesModel = require('./models/packages');
 const AppointmentsModel=require('./models/appointment');
 const PrescriptionModel=require('./models/prescriptions');
-const AppointmentModel = require('./models/appointment');
+const NotificationsModel=require('./models/notification');
+const RoomsModel=require('./models/rooms');
+const videoRoomsModel=require('./models/videoRooms');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs');
-const uploadDirectory = 'uploads';
-const PDFDocument = require('pdfkit');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+const express = require('express');
+const http = require('http');
+const cors = require('cors');
+const { v4: uuidV4 } = require('uuid')
 
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+const server = http.createServer(app);
+
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
+
+app.get('/', (req, res) => {
+  res.redirect(`/${uuidV4()}`)
+})
+
+const vidIo = require('socket.io')({
+  cors: {
+    origin: ["http://127.0.0.1:5174","http://127.0.0.1:5173","http://localhost:5174", "http://localhost:5173"],  // Replace with your actual frontend origin
+    methods: ["GET", "POST"]
+  }
+}).listen(3004);
+
+vidIo.on('connection', (socket) => {
+  console.log('a user connected');
+
+  // Handle signaling messages
+  socket.on('signal', (data) => {
+    io.to(data.roomId).emit('signal', data);
+  });
+
+  // Handle joining a room
+  socket.on('joinRoom', (roomId) => {
+    socket.join(roomId);
+    console.log(`User joined room: ${roomId}`);
+  });
+
+  // Handle disconnect
+  socket.on('disconnect', () => {
+    console.log('user disconnected');
+  });
+});
+
+
+
+const activeUsers = {};
+const activeRooms = {};
+const io = require('socket.io')({
+  cors: {
+    origin: "http://127.0.0.1:5173",  // Replace with your actual frontend origin
+    methods: ["GET", "POST"]
+  }
+}).listen(3003);
+io.on('connection', (socket) => {
+    console.log('A user connected');
+  
+    socket.on('new-user', ({ user, userId, roomId }) => {
+        // Store the user in the activeUsers object
+        activeUsers[userId] = {
+            socketId: socket.id,
+            name: user,
+        };
+
+        // Join the specified room
+        socket.join(roomId);
+        // Store the room in the activeRooms object
+        if (!activeRooms[roomId]) {
+            activeRooms[roomId] = [];
+        }
+        activeRooms[roomId].push(userId);
+        // Notify other users in the room that a new user has connected
+        socket.to(roomId).emit('user-connected', { name: user, userId, roomId });
+      });
+
+    socket.on('send-chat-message', ({ message, userId, roomId }) => {
+        // Broadcast the message to all users in the room
+        if(activeUsers[userId]){
+        socket.to(roomId).emit('chat-message', { name: activeUsers[userId].name, message, userId, roomId });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        const userId = Object.keys(activeUsers).find((key) => activeUsers[key].socketId === socket.id);
+
+        if (userId) {
+            const { name, roomId } = activeUsers[userId];
+
+            // Remove the user from activeUsers
+            delete activeUsers[userId];
+
+            // Remove the user from the room
+            if(activeRooms[roomId]){
+            activeRooms[roomId] = activeRooms[roomId].filter((id) => id !== userId);
+            }
+            // Notify other users in the room that a user has disconnected
+            socket.to(roomId).emit('user-disconnected', { name, userId, roomId });
+        }
+
+        console.log('A user disconnected');
+    });
+});
+
+const uploadDirectory = 'uploads';
 
 if (!fs.existsSync(uploadDirectory)) {
   fs.mkdirSync(uploadDirectory);
@@ -29,27 +135,9 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage });
-const app = express();
 
-app.use(express.json());
-// Enable CORS with credentials option
-app.use(cors({ credentials: true, origin: true }));
-
-
-var logged = {
-  username: "",
-  in: "",
-  type: ""
-};
-
-//mongoose.connect('mongodb://localhost:27017/clinic');
-mongoose.connect('mongodb://0.0.0.0:27017/clinic', { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch(error => {
-    console.error('Error connecting to MongoDB:', error);
-  });
+mongoose.connect('mongodb://localhost:27017/clinic');
+//mongoose.connect('mongodb+srv://acliensproject:ACLTest123@cluster0.vt7j6ma.mongodb.net/');
 
 // Create a transporter with your email service credentials
 const transporter = nodemailer.createTransport({
@@ -78,6 +166,106 @@ const sendOTPByEmail = (toEmail, otp) => {
   });
 };
 
+const sendPatientAppointmentEmail = (toEmail, doctorName, date) => {
+  const mailOptions = {
+    from: 'acliensproject@gmail.com',
+    to: toEmail, // User's email address
+    subject: 'Appointment Notification',
+    text: `Your Have Reserved An Appointment with Doctor : ${doctorName} on: ${date}`,
+    
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('Error sending email: ', error);
+    } else {
+    }
+  });
+};
+
+const sendPatientCancelEmail = (toEmail, doctorName, date) => {
+  const mailOptions = {
+    from: 'acliensproject@gmail.com',
+    to: toEmail, // User's email address
+    subject: 'Appointment Notification',
+    text: `Your Appointment with Doctor : ${doctorName} on: ${date} has been Canceled`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('Error sending email: ', error);
+    } else {
+    }
+  });
+};
+
+const sendPatientRescheduleEmail = (toEmail, doctorName, date) => {
+  const mailOptions = {
+    from: 'acliensproject@gmail.com',
+    to: toEmail, // User's email address
+    subject: 'Appointment Notification',
+    text: `Your Appointment with Doctor : ${doctorName} has been Rescheduled. The appointment is now reserved on: ${date}`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('Error sending email: ', error);
+    } else {
+    }
+  });
+};
+
+const sendDoctorAppointmentEmail = (toEmail, patientName, date) => {
+  const mailOptions = {
+    from: 'acliensproject@gmail.com',
+    to: toEmail, // User's email address
+    subject: 'Appointment Notification',
+    text: `Patient: ${patientName} Have Reserved An Appointment with you on: ${date}`,
+    
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('Error sending email: ', error);
+    } else {
+    }
+  });
+};
+
+const sendDoctorCancelEmail = (toEmail, patientName, date) => {
+  const mailOptions = {
+    from: 'acliensproject@gmail.com',
+    to: toEmail, // User's email address
+    subject: 'Appointment Notification',
+    text: `Appointment with Patient: ${patientName} on: ${date} has been cancelled`,
+    
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('Error sending email: ', error);
+    } else {
+    }
+  });
+};
+
+const sendDoctorRescEmail = (toEmail, patientName, date) => {
+  const mailOptions = {
+    from: 'acliensproject@gmail.com',
+    to: toEmail, // User's email address
+    subject: 'Appointment Notification',
+    text: `Appointment with Patient: ${patientName} has been rescheduled. The appointment is now reserved on: ${date} `,
+    
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('Error sending email: ', error);
+    } else {
+    }
+  });
+};
+
 // Register route for patients and doctors
 app.post('/register-patient', async(req, res) => {
   const userData = req.body;
@@ -87,26 +275,30 @@ app.post('/register-patient', async(req, res) => {
   const existingPatientUsername= await PatientsModel.findOne({ username: userData.username.toLowerCase() })
   const existingDoctorUsername=await DoctorsModel.findOne({ email: userData.username.toLowerCase() })
   const existingAdminUsername=await AdminsModel.findOne({ email: userData.username.toLowerCase() })
-  if (userData.username.toLowerCase()=="admin"||existingPatientEmail || existingDoctorEmail || existingAdminEmail || existingPatientUsername||existingDoctorUsername||existingAdminUsername){
-    return res.status(400).json({ message: 'Username/Email Associated With an Existing Account' });
+
+  if (existingPatientEmail || existingDoctorEmail || existingAdminEmail){
+    return res.json({ message: 'An account with the same email already exists' });
+  }
+  if (userData.username.toLowerCase()=="admin"|| existingPatientUsername||existingDoctorUsername||existingAdminUsername){
+    return res.json({ message: 'Username already exists' });
   }
   // Check if a user with the same username already exists in PatientsModel
   PatientsModel.findOne({ username: userData.username.toLowerCase() })
     .then(existingPatient => {
       if (existingPatient) {
-        return res.status(400).json({ message: 'Username already exists' });
+        return res.json({ message: 'Username already exists' });
       } else {
         // Check if an account with the same phone number already exists
         PatientsModel.findOne({ mobileNumber: userData.mobileNumber })
           .then(existingPatientByPhone => {
             if (existingPatientByPhone) {
-              return res.status(400).json({ message: 'An account with the same phone number already exists' });
+              return res.json({ message: 'An account with the same phone number already exists' });
             } else {
               // Check if an account with the same email already exists
               PatientsModel.findOne({ email: userData.email })
                 .then(existingPatientByEmail => {
                   if (existingPatientByEmail) {
-                    return res.status(400).json({ message: 'An account with the same email already exists' });
+                    return res.json({ message: 'An account with the same email already exists' });
                   } else {
                     // If the username, phone number, and email are unique, create the new patient
                     PatientsModel.create(userData)
@@ -132,8 +324,11 @@ app.post('/register-doctor', async (req, res) => {
   const existingPatientUsername= await PatientsModel.findOne({ username: userData.username.toLowerCase() })
   const existingDoctorUsername=await DoctorsModel.findOne({ email: userData.username.toLowerCase() })
   const existingAdminUsername=await AdminsModel.findOne({ email: userData.username.toLowerCase() })
-  if (userData.username.toLowerCase()=="admin"||existingPatientEmail || existingDoctorEmail || existingAdminEmail || existingPatientUsername||existingDoctorUsername||existingAdminUsername){
-    return res.status(400).json({ message: 'Email Associated With an Existing Account' });
+  if (existingPatientEmail || existingDoctorEmail || existingAdminEmail){
+    return res.json({ message: 'An account with the same email already exists' });
+  }
+  if (userData.username.toLowerCase()=="admin"|| existingPatientUsername||existingDoctorUsername||existingAdminUsername){
+    return res.json({ message: 'Username already exists' });
   }
   // Check if a user with the same username already exists in DoctorsModel
   DoctorsModel.findOne({ username: userData.username })
@@ -143,7 +338,7 @@ app.post('/register-doctor', async (req, res) => {
       } else {
         // If the username is unique, create the new doctor
         DoctorsModel.create(userData)
-          .then(doctor => res.json(doctor))
+          .then(res.json({ message: 'completed' }))
           .catch(err => res.status(400).json(err));
         
       }
@@ -173,9 +368,10 @@ app.post('/upload-id-document/:username', upload.single('idDocument'), (req, res
     .catch(err => res.status(500).json(err));
 });
 
-app.post('/upload-medical-licenses/:username', upload.array('medicalLicenses', 5), (req, res) => {
+app.post('/upload-medical-licenses/:username', upload.single('medicalLicenses'), (req, res) => {
   const username = req.params.username;
-  const medicalLicenses = req.files;
+  const medicalLicenses = req.file;
+
   // Check if a doctor with the given username exists in the DoctorsModel
   DoctorsModel.findOne({ username: username })
     .then(existingDoctor => {
@@ -183,14 +379,10 @@ app.post('/upload-medical-licenses/:username', upload.array('medicalLicenses', 5
         return res.status(404).json({ message: 'Doctor not found' });
       }
 
-      // Process and update the medical licenses for the doctor
-      // You can use the "existingDoctor" to identify the doctor and update their information in the database.
-      const medicalLicensesData = medicalLicenses.map(file => ({
-        fileName: file ? file.filename : '',
-        filePath: file ? file.path : '',
-      }));
-
-      existingDoctor.medicalLicenses = medicalLicensesData;
+      existingDoctor.medicalLicenses.push({
+        fileName: medicalLicenses ? medicalLicenses.filename : '',
+        filePath: medicalLicenses ? medicalLicenses.path : '',
+      });
 
       // Save the updated doctor information to the database
       existingDoctor.save()
@@ -199,6 +391,7 @@ app.post('/upload-medical-licenses/:username', upload.array('medicalLicenses', 5
     })
     .catch(err => res.status(500).json(err));
 });
+
 
 app.post('/upload-medical-degree/:username', upload.single('medicalDegree'), (req, res) => {
   const username = req.params.username;
@@ -210,7 +403,6 @@ app.post('/upload-medical-degree/:username', upload.single('medicalDegree'), (re
       if (!existingPatient) {
         return res.status(404).json({ message: 'Patient not found' });
       }
-
       // Update the ID document information for the patient
       existingPatient.medicalDegree = {
         fileName: medicalDegree ? medicalDegree.filename : '',
@@ -234,20 +426,17 @@ app.get('/getType', async (req, res) => {
     if (doctor) {
       return res.json({ userType: 'doctor' });
     }
-
     // Check in PatientsModel
     const patient = await PatientsModel.findOne({ username });
     if (patient) {
       
       return res.json({ userType: 'patient' });
     }
-
     // Check in AdminsModel
     const admin = await AdminsModel.findOne({ username });
     if (admin) {
       return res.json({ userType: 'admin' });
     }
-
     // If username is not found in any model, return an appropriate response
     return res.json({ userType: 'not found' });
   } catch (error) {
@@ -257,22 +446,20 @@ app.get('/getType', async (req, res) => {
 });
 app.post('/login-doctor', (req, res) => {
   const { username, password } = req.body;
-  
+ 
   DoctorsModel.findOne({ username: username.toLowerCase() })
     .then((user) => {
       if (user) {
         if (user.password === password) {
-          logged.in = true;
-          logged.username = username;
-          logged.type = "doctor";
+          const token = jwt.sign({ username: user.username, type: 'doctor' }, 'random');
           if (user.enrolled === "Pending" || user.enrolled === "Request Not Made") {
-            logged.type = "doctornotreg";
-            res.status(200).json({ message: "Success But Not Enrolled", enrolledStatus: user.enrolled });
+            const token2 = jwt.sign({ username: user.username, type: 'doctornotreg' }, 'random');
+            res.json({ message: "Success But Not Enrolled", enrolledStatus: user.enrolled, token2 });
           } else if(user.enrolled === "PendingContract") {
-            res.status(200).json({ message: "Waiting for contract" });
+            res.json({ message: "Waiting for contract", token });
           }
           else{
-            res.status(200).json({ message: "Success" });
+            res.json({ message: 'Success', token });
           }
         } else {
           res.status(401).json({ message: "Password incorrect" });
@@ -291,27 +478,114 @@ app.post('/login-doctor', (req, res) => {
         .then(user => {
           if (user) {
             if (user.password === password) {
-              logged.in=true;
-              logged.username=username;
-              logged.type="patient";
-              res.json("Success");
+              const token = jwt.sign({ username: user.username, type: 'patient' }, 'random');
+              res.json({ message: 'Success', token });
             } else {
-              res.json("Password incorrect");
+              res.json({message:"Password incorrect"});
             }
           } else {
-            res.json("username isn't registered");
+            res.json({message: "username isn't registered"});
           }
         })
         .catch(err => res.status(400).json(err));
   });
+  const pdf = require('html-pdf');
+  app.post('/generate-pdf', async (req, res) => {
+    const { prescription, appointmentId } = req.body;
+    const appoint=await AppointmentsModel.findOne({_id:appointmentId});
+    const doctor=await DoctorsModel.findOne({_id:appoint.doctor});
+    const patient=await PatientsModel.findOne({_id:appoint.patient});
+    // Generate HTML from prescription data
+    const html = generateHtmlFromPrescription(prescription,doctor.name,patient.name, appoint.date);
+  
+    const options = { format: 'Letter' };
+  
+    pdf.create(html, options).toFile(path.join(uploadDirectory, `${appointmentId}.pdf`), (err, result) => {
+      if (err) {
+        res.status(500).json({ error: 'Error generating PDF' });
+      } else {
+        res.json({ success: true, filePath: result.filename });
+      }
+    });
+  });
+  
+  function generateHtmlFromPrescription(prescription, doctorName, patientName, appointmentDate) {
+    const formattedAppointmentDate = new Date(appointmentDate).toLocaleDateString('en-US');
+    // Customize this function to create the HTML structure based on your prescription data
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Prescription</title>
+        <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            border: 2px solid #333;
+            padding: 20px;
+            position: relative;
+          }
+  
+          h1 {
+            color: #333;
+            text-align: center;
+            margin-top:100px;
+          }
+  
+          h4 {
+            color: #333;
+          }
+  
+          ul {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 20px;
+          }
+  
+          li {
+            padding: 10px;
+            
+          }
+  
+          .header-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header-info">
+          <p>Doctor Name: ${doctorName}</p>
+          <p>Patient Name: ${patientName}</p>
+          <p>Appointment Date: ${formattedAppointmentDate}</p>
+        </div>
+        <h1>Prescription</h1>
+        <ul>
+          ${prescription.map((item, index) => `
+            <li>
+              <h4>${index + 1}. ${item.name}</h4>
+              Dosage: ${item.dosage.timesDaily} times daily for ${item.dosage.numberOfDays} day(s)
+            </li>
+            <hr>
+          `).join('')}
+        </ul>
+      </body>
+      </html>
+    `;
+  }
+  
+  
 
   app.post('/login-admin', (req, res) => {
     const {username, password} = req.body;
     if(username.toLowerCase()==="admin"&&password=="admin"){
-        logged.in=true;
-        logged.username="admin";
-        logged.type="admin";
-        res.json("Success");
+      const token = jwt.sign({ username: "admin", type: 'admin' }, 'random');
+      res.json({ message: 'Success', token });
         
       }
     
@@ -320,10 +594,8 @@ app.post('/login-doctor', (req, res) => {
         .then(user => {
           if (user) {
             if (user.password === password) {
-              logged.in=true;
-              logged.username=username;
-              logged.type="admin";
-              res.json("Success");
+              const token = jwt.sign({ username: user.username, type: 'admin' }, 'random');
+              res.json({ message: 'Success', token });
             } else {
               res.json("Password incorrect");
             }
@@ -333,21 +605,24 @@ app.post('/login-doctor', (req, res) => {
         })
   }});
 
-  app.get('/get-user-type', (req, res) => {
-    res.json(logged);
-  });
 
   app.post('/add-admin', async (req, res) => {
   try {
     const adminData = req.body;
+   
     const existingPatientEmail= await PatientsModel.findOne({ email: adminData.email.toLowerCase() })
   const existingDoctorEmail=await DoctorsModel.findOne({ email: adminData.email.toLowerCase() })
   const existingAdminEmail=await AdminsModel.findOne({ email: adminData.email.toLowerCase() })
   const existingPatientUsername= await PatientsModel.findOne({ username: adminData.username.toLowerCase() })
   const existingDoctorUsername=await DoctorsModel.findOne({ email: adminData.username.toLowerCase() })
   const existingAdminUsername=await AdminsModel.findOne({ email: adminData.username.toLowerCase() })
-  if (existingPatientEmail || existingDoctorEmail || existingAdminEmail || existingPatientUsername||existingDoctorUsername||existingAdminUsername){
-    return res.status(400).json({ message: 'Email Associated With an Existing Account' });
+  if (existingPatientEmail || existingDoctorEmail || existingAdminEmail){
+    return res.json({ message: 'Email Associated With an Existing Account' });
+  }
+  else if(
+    existingPatientUsername||existingDoctorUsername||existingAdminUsername
+  ){
+    return res.json({ message: 'Username Associated With an Existing Account' });
   }
     if ((req.body.username.toLowerCase()=="admin")) {
       // If username already exists, return an error response
@@ -409,8 +684,24 @@ app.post('/approve-doctor/:id', async (req, res) => {
     }
   });
   app.post('/accept-contract', async (req, res) => {
+    const token = req.header('Authorization');
+  
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  
     try {
-      await DoctorsModel.findOneAndUpdate({ username:logged.username }, { enrolled: "Approved" });
+      // Verify the token
+      const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+  
+      // Check if the user is a doctor
+      if (decoded.type !== 'doctor') {
+        return res.status(403).json({ message: 'Forbidden, not a doctor' });
+      }
+  
+      // Update the doctor's enrollment status
+      await DoctorsModel.findOneAndUpdate({ username: decoded.username }, { enrolled: 'Approved' });
+      
       res.json({ message: 'Doctor approved successfully' });
     } catch (error) {
       console.error(error);
@@ -418,9 +709,24 @@ app.post('/approve-doctor/:id', async (req, res) => {
     }
   });
   app.post('/reject-contract', async (req, res) => {
+    const token = req.header('Authorization');
+
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     try {
+      // Verify the token
+      const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
   
-      await DoctorsModel.deleteOne({ username:logged.username });
+      // Check if the user is a doctor
+      if (decoded.type !== 'doctor') {
+        return res.status(403).json({ message: 'Forbidden, not a doctor' });
+      }
+  
+      // Delete the doctor's record
+      await DoctorsModel.deleteOne({ username: decoded.username });
+      
       res.json({ message: 'Doctor Rejected Successfully' });
     } catch (error) {
       console.error(error);
@@ -429,8 +735,16 @@ app.post('/approve-doctor/:id', async (req, res) => {
   });
 
   app.get('/get-admins', async (req, res) => {
+    const token = req.header('Authorization');
+  
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  
     try {
-      const admins = await AdminsModel.find({ username: { $ne: logged.username } });
+      // Verify the token
+      const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+      const admins = await AdminsModel.find({ username: { $ne: decoded.username } });
       res.json(admins);
     } catch (error) {
       console.error(error);
@@ -496,16 +810,24 @@ app.post('/remove-doctor/:doctorId', async (req, res) => {
 });
 
 app.get('/get-my-patients', async (req, res) => {
+  const token = req.header('Authorization');
+  
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
   try {
+    // Verify the token
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
     // Find the doctor based on the logged-in username
-    const doctor = await DoctorsModel.findOne({ username: logged.username });
+    const doctor = await DoctorsModel.findOne({ username: decoded.username });
 
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
 
     // Find all appointments for the doctor
-    const appointments = await AppointmentModel.find({ doctor: doctor._id });
+    const appointments = await AppointmentsModel.find({ doctor: doctor._id, cancelled: 'false' });
 
     // Extract unique patient IDs from the appointments
     const patientIds = Array.from(new Set(appointments.map(appointment => appointment.patient)));
@@ -552,7 +874,6 @@ app.get('/get-my-patients', async (req, res) => {
         };
       }
     });
-    console.log(patientInfo);
     res.json(patientInfo);
   } catch (error) {
     console.error(error);
@@ -669,8 +990,14 @@ app.delete('/health-packages/:packageId', async (req, res) => {
 });
 
 app.get('/get-doctor-info', async (req, res) => {
-  try {
-    const doctorInfo = await DoctorsModel.findOne({ username: logged.username });
+  const token = req.header('Authorization');
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try{
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    const doctorInfo = await DoctorsModel.findOne({ username: decoded.username });
     res.json(doctorInfo);
   } catch (error) {
     console.error(error);
@@ -679,16 +1006,22 @@ app.get('/get-doctor-info', async (req, res) => {
 });
 
 app.put('/update-doctor-info', async (req, res) => {
-  try {
+  const token = req.header('Authorization');
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try{
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
     const existingPatientEmail = await PatientsModel.findOne({ email: req.body.email.toLowerCase() });
-    const sameDoctor=await DoctorsModel.findOne({ username: logged.username });
+    const sameDoctor=await DoctorsModel.findOne({ username: decoded.username });
     const existingDoctorEmail = await DoctorsModel.findOne({ email: req.body.email.toLowerCase() });
     const existingAdminEmail = await AdminsModel.findOne({ email: req.body.email.toLowerCase() });
     if (existingPatientEmail || (existingDoctorEmail&&(sameDoctor._id.toString()!=existingDoctorEmail._id.toString())) || existingAdminEmail) {
       return res.status(400).json({ message: 'Email Associated with Another Account' });
     }
   
-    await DoctorsModel.updateOne({ username: logged.username }, req.body);
+    await DoctorsModel.updateOne({ username: decoded.username }, req.body);
     return res.json({ message: 'Doctor info updated successfully.' });
   } catch (error) {
     console.error(error);
@@ -696,243 +1029,99 @@ app.put('/update-doctor-info', async (req, res) => {
   }
 });
 
-app.get('/get-doctor-info', async (req, res) => {
-  try {
-    const loggedUsername = logged.username; 
-    const doctorInfo = await UserModel.findOne({ username: loggedUsername });
-    if (!doctorInfo) {
-      return res.status(404).json({ error: 'Doctor not found' });
-    }
-    res.json(doctorInfo);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 //view a list of all my Prescriptions   (Req 54)
 
 app.get('/get-prescriptions/', async (req, res) => {
   try {
-    const userType = logged.type;
+    const token = req.headers.authorization;
 
-    if (userType === 'patient') {
-      const patient = await PatientsModel.findOne({ username: logged.username });
+    // Check if the token exists
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
 
-      if (!patient) {
-        return res.status(404).json({ message: 'Patient not found' });
-      }
-      const patientId = patient._id; // Extract the patient's ObjectId
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    // Find the patient with the given username
+     // Replace with the actual logged username
+    const patient = await PatientsModel.findOne({ username: decoded.username });
 
-      // Fetch all prescriptions from the database with _id included
-      const allPrescriptions = await PrescriptionModel.find({})
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    // Find prescriptions for the patient
+    const prescriptions = await PrescriptionModel
+      .find({ patientID: patient._id })
       .populate({
-        path:'doctorID',
-        select:'name',
-        model:DoctorsModel,
-
-      })
-      .exec();
-
-      // Filter prescriptions based on the patient's ID
-      const prescriptions = allPrescriptions.filter((prescription) => {
-        return prescription.patientID.toString() === patientId.toString();
+        path: 'doctorID',
+        select: 'name', // Select the doctor's name
+        model: DoctorsModel,
       });
+      
+    // Process the prescriptions to add the 'status' field
+    const updatedPrescriptions = await prescriptions.map((prescription) => {
+      return {
+        _id:prescription._id,
+        medicines: prescription.medicines,
+        doctorName: prescription.doctorID.name,
+        date: prescription.date,
+        filled: prescription.filled,
+        fileName:prescription.fileName,
+        patientName: patient.name
+      };
+    });
+    res.json(updatedPrescriptions);
+  } catch (error) {
+    console.error('Error: ', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
-      if (!prescriptions || prescriptions.length === 0) {
-        return res.status(404).json({ message: 'Prescriptions not found for this patient' });
-      }
-
-      // Process the prescriptions to add the 'status' field
-      const updatedPrescriptions = prescriptions.map((prescription) => {
-        const status = prescription.medicines.length > 0 ? 'filled' : 'unfilled';
-        return {
-          _id: prescription._id,
-          medicines: prescription.medicines,
-          doctorName: prescription.doctorID.name,
-          date: prescription.date,
-          status: status,
-        };
-      });
-      res.json({ message: 'hello', prescriptions: updatedPrescriptions });
-    } 
+app.get('/get-doctor-prescriptions', async (req, res) => {
+  try {
     
-    else if (userType === 'doctor') {
-      const doctor = await DoctorsModel.findOne({ username: logged.username });
+    const token = req.headers.authorization;
 
-      if (!doctor) {
-        return res.status(404).json({ message: 'Doctor not found' });
-      }
-      const doctorId = doctor._id; // Extract the doctor's ObjectId
+    // Check if the token exists
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
 
-      // Fetch all prescriptions from the database with _id included
-      const allPrescriptions = await PrescriptionModel.find({})
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    // Find the patient with the given username
+     // Replace with the actual logged username
+    const doctor = await DoctorsModel.findOne({ username: decoded.username });
+
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    // Find prescriptions for the patient
+    const prescriptions = await PrescriptionModel
+      .find({ doctorID: doctor._id })
       .populate({
         path: 'patientID',
-        select: 'name',
+        select: 'name', // Select the doctor's name
         model: PatientsModel,
-      })
-      .exec();
-
-      // Filter prescriptions based on the doctor's ID
-      const prescriptions = allPrescriptions.filter((prescription) => {
-        return prescription.doctorID.toString() === doctorId.toString();
       });
-
-      if (!prescriptions || prescriptions.length === 0) {
-        return res.status(404).json({ message: 'Prescriptions not found for this doctor' });
-      }
-
-      // Process the prescriptions to add the 'status' field
-      const updatedPrescriptions = prescriptions.map((prescription) => {
-        const status = prescription.medicines.length > 0 ? 'filled' : 'unfilled';
-        return {
-          _id: prescription._id,
-          medicines: prescription.medicines,
-          patientName: prescription.patientID.name,
-          date: prescription.date,
-          status: status,
-          paymentMethod: prescription.paymentMethod, // Include the payment method
-
-        };
-      });
-      res.json({ message: 'hello', prescriptions: updatedPrescriptions });
-    } else {
-      console.log('error');
-      res.status(400).json({ message: 'Invalid user type' });
-    }
-  } catch (error) {
-    console.error('Error: ', error.message);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-//Select Payment for prescription (REQ 58)
-app.post('/select-payment/:prescriptionId', async (req, res) => {
-  try {
-    const { prescriptionId } = req.params;
-    const { paymentMethod } = req.body;
-
-    // Find the prescription by ID and update the payment method
-    const updatedPrescription = await PrescriptionModel.findByIdAndUpdate(
-      prescriptionId,
-      { $set: { paymentMethod } },
-      { new: true }
-    );
-
-    if (!updatedPrescription) {
-      return res.status(404).json({ message: 'Prescription not found' });
-    }
-
-    res.status(200).json({ message: 'Payment method updated successfully' });
-  } catch (error) {
-    console.error('Error updating payment method:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-//select a prescription from my list of perscriptions (REQ 56)
-app.get('/select-prescriptions/:_id', async (req, res) => {
-  try {
-    const prescriptionID = req.params._id;
-    const prescription = await PrescriptionModel.findById(prescriptionID);
-
-    if (!prescription) {
-      return res.status(404).json({ message: 'Prescription not found' });
-    }
-
-    res.status(200).json({ message: 'Prescription selected successfully' ,prescription});
-  } catch (error) {
-    console.error('Error: ', error.message);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-app.get('/view-selected-prescription/:_id', async (req, res) => {
-  try {
-      const userType = logged.type;
-
-      if (userType !== 'patient') {
-          return res.status(403).json({ message: 'Access forbidden' });
-      }
-
-      const patient = await PatientsModel.findOne({ username: logged.username });
-
-      if (!patient) {
-          return res.status(404).json({ message: 'Patient not found' });
-      }
-
-    const prescriptionID = req.params._id;
-    const prescription = await PrescriptionModel.findById(prescriptionID)
-    .populate({
-              path: 'doctorID',
-              select: 'name',
-              model: DoctorsModel,
-          })
-          .exec();
       
-    if (!mongoose.Types.ObjectId.isValid(prescriptionID)) {
-        return res.status(400).json({ message: 'Invalid prescription ID' });
-      }
-    if (!prescription) {
-      return res.status(404).json({ message: 'Selected prescription details not found' });
-    }
-    console.log(prescriptionID);
-
-      const processedPrescription = {
-          _id: prescription._id,
-          medicines: prescription.medicines,
-          doctorName: prescription.doctorID.name,
-          date: prescription.date,
-          status: prescription.medicines.length > 0 ? 'filled' : 'unfilled',
+    // Process the prescriptions to add the 'status' field
+    const updatedPrescriptions = prescriptions.map((prescription) => {
+      return {
+        medicines: prescription.medicines,
+        doctorName: prescription.doctorID.name,
+        date: prescription.date,
+        filled: prescription.filled,
+        fileName:prescription.fileName,
+        patientName: prescription.patientID.name
       };
-
-      res.json({ message: 'Selected prescription details', prescription: processedPrescription });
-  } catch (error) {
-      console.error('Error: ', error.message);
-      res.status(500).json({ message: 'Internal server error' });
-  }
-});
-//download 
-app.get('/download-prescription/:_id', async (req, res) => {
-  try {
-    const prescriptionID = req.params._id;
-    const prescription = await PrescriptionModel.findById(prescriptionID)
-      .populate('doctorID', 'name')
-      .populate('patientID', 'name');
-      
-    if (!mongoose.Types.ObjectId.isValid(prescriptionID)) {
-        return res.status(400).json({ message: 'Invalid prescription ID' });
-      }
-    if (!prescription) {
-      return res.status(404).json({ message: 'Prescription not found' });
-    }
-    console.log(prescriptionID);
-
-    const doc = new PDFDocument();
-
-    // Prepare formatted date for filename
-    const formattedDate = prescription.date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-
-    // Pipe the PDF to response
-    res.setHeader('Content-Disposition', `attachment; filename="Prescription_${formattedDate}.pdf"`);
-    res.setHeader('Content-Type', 'application/pdf');
-
-    doc.pipe(res);
-
-    // Write prescription details to the PDF
-    doc.fontSize(12).text(`Prescription Details\n\n`);
-    doc.fontSize(10).text(`Doctor: ${prescription.doctorID.name}\n`);
-    doc.fontSize(10).text(`Patient: ${prescription.patientID.name}\n`);
-    doc.fontSize(10).text(`Date: ${prescription.date.toDateString()}\n\n`);
-    doc.fontSize(10).text(`Medicines:\n`);
-
-    prescription.medicines.forEach((medicine, index) => {
-      doc.fontSize(10).text(`${index + 1}. ${medicine.name}\n`);
     });
-
-    doc.end();
-    
-  } 
-  catch (error) {
-    console.error('Error generating prescription PDF:', error);
+    res.json(updatedPrescriptions);
+  } catch (error) {
+    console.error('Error: ', error.message);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -975,10 +1164,32 @@ app.get('/filter-prescriptions', async (req, res) => {
 });
 
 
+//select a prescription from my list of perscriptions (REQ 56)
+app.get('/select-prescriptions/:prescriptionID', async (req, res) => {
+  try {
+    const prescriptionID = req.params.prescriptionID;
+    const prescription = await PrescriptionModel.findById(prescriptionID);
+
+    if (!prescription) {
+      return res.status(404).json({ message: 'Prescription not found' });
+    }
+
+    res.status(200).json({prescription});
+  } catch (error) {
+    console.error('Error: ', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 app.put("/update-family-member",async (req,res)=>{
   const{name, nationalID, age, gender, relation}=req.body;
+  const token = req.header('Authorization');
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
   try{
-    await PatientsModel.updateOne({username:logged.username},{$push: {familyMembers: {nationalID: nationalID, age:age, name:name, gender:gender, relation:relation}}});
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    await PatientsModel.updateOne({username:decoded.username},{$push: {familyMembers: {nationalID: nationalID, age:age, name:name, gender:gender, relation:relation}}});
     res.json({message:"Family Member info added successfully."});
 
   }catch(error){
@@ -986,77 +1197,92 @@ app.put("/update-family-member",async (req,res)=>{
     res.status(500).json({message:"An error occured while updating family members."});
   }});
 
+app.put("/add-existing-family-member",async (req,res)=>{
+  const token = req.header('Authorization');
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+  const{email, phone, relation}=req.body;
+  const user=await PatientsModel.findOne({username:decoded.username});
 
-  app.put("/add-existing-family-member",async (req,res)=>{
-    const{email, phone, relation}=req.body;
-    const user=await PatientsModel.findOne({username:logged.username});
-
-    if(email==user.email||phone==user.mobileNumber){
-      return res.status(404).json({ message: 'You cannot add your own account!' });
+  if(email==user.email||phone==user.mobileNumber){
+    return res.status(404).json({ message: 'You cannot add your own account!' });
+  }
+  let patient;
+  try{
+    if(email){
+      patient=await PatientsModel.findOne({email:email});
     }
-    let patient;
-    try{
-      if(email){
-       patient=await PatientsModel.findOne({email:email});
-      }
-      else{
-        patient=await PatientsModel.findOne({mobileNumber:phone});
-      }
-      if(!patient){
-        return res.status(404).json({ message: 'Patient Not found' });
-      }
-      const info={
-        account:patient._id,
-        name:patient.name,
-        nationalID:patient.nationalID,
-        gender:patient.gender,
-        age: (new Date()).getFullYear() - patient.dob.getFullYear(),
-        relation:relation.toLowerCase()
-      }
-      const existingFamilyMember = user.familyMembers.find(member =>
-        member.name === info.name &&
-        member.nationalID === info.nationalID 
-      );
-      
-      if (existingFamilyMember) {
-        // Family member already exists, handle the error
-        return res.status(400).json({message:"Family Member Already exists"});
-
-      } else {
-        // Add the family member to the user's familyMembers array
-        user.familyMembers.push(info);
-        user.save();
-        res.status(200).json({message:"Family Member Has Been Added!"});
-      }
-      let relation2;
-      if(relation.toLowerCase()==="husband"){
-        relation2="wife"
-      }
-      if(relation.toLowerCase()==="wife"){
-        relation2="husband"
-      }
-      if(relation2){
-      const info2={
-        account:user._id,
-        name:user.name,
-        nationalID:user.nationalID,
-        age: (new Date()).getFullYear() - user.dob.getFullYear(),
-        relation:relation2.toLowerCase(),
-      }
-
-      patient.familyMembers.push(info2);
-      patient.save();
+    else{
+      patient=await PatientsModel.findOne({mobileNumber:phone});
     }
-    }catch(error){
-      console.error(error);
-      res.status(500).json({message:"An error occured while updating family members."});
-    }});
+    if(!patient){
+      return res.status(404).json({ message: 'Patient Not found' });
+    }
+    const info={
+      account:patient._id,
+      name:patient.name,
+      nationalID:patient.nationalID,
+      gender:patient.gender,
+      age: (new Date()).getFullYear() - patient.dob.getFullYear(),
+      relation:relation.toLowerCase()
+    }
+    const existingFamilyMember = user.familyMembers.find(member =>
+      member.name === info.name &&
+      member.nationalID === info.nationalID 
+    );
+    
+    if (existingFamilyMember) {
+      // Family member already exists, handle the error
+      res.status(400).json({message:"Family Member Already exists"});
 
-  app.get('/get-user-gender', (req, res) => {
-    const userType = logged.type; // Assuming you have the user type in req.logged
-    const username = logged.username; // Assuming you have the username in req.logged
+    } else {
+      // Add the family member to the user's familyMembers array
+      user.familyMembers.push(info);
+      user.save();
+      res.status(200).json({message:"Family Member Has Been Added!"});
+    }
+    let relation2;
+    if(relation.toLowerCase()==="husband"){
+      relation2="wife"
+    }
+    if(relation.toLowerCase()==="wife"){
+      relation2="husband"
+    }
+    if(relation2){
+    const info2={
+      account:user._id,
+      name:user.name,
+      nationalID:user.nationalID,
+      age: (new Date()).getFullYear() - user.dob.getFullYear(),
+      relation:relation2.toLowerCase(),
+    }
+
+    patient.familyMembers.push(info2);
+    patient.save();
+  }
+  }catch(error){
+    console.error(error);
+    res.status(500).json({message:"An error occured while updating family members."});
+  }});
+
+app.get('/get-user-gender', (req, res) => {
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+
+    const userType = decoded.type;
+    const username = decoded.username;
+
     let model;
-  
+
     if (userType === 'patient') {
       model = PatientsModel;
     } else if (userType === 'doctor') {
@@ -1064,53 +1290,80 @@ app.put("/update-family-member",async (req,res)=>{
     } else {
       return res.status(400).json({ message: 'Invalid user type' });
     }
-  
+
     model.findOne({ username: username })
       .then(user => {
         if (!user) {
           return res.status(404).json({ message: 'User not found' });
         }
         res.json({ gender: user.gender });
-        
       })
       .catch(err => {
         res.status(500).json({ error: err.message });
       });
-  });
+  } catch (error) {
+    console.error('Error during token verification:', error);
+    res.status(401).json({ message: 'Invalid token' });
+  }
+});
 
   app.get('/get-wallet-value', (req, res) => {
-    const userType = logged.type; // Assuming you have the user type in req.logged
-    const username = logged.username; // Assuming you have the username in req.logged
-    let model;
+    const token = req.header('Authorization');
   
-    if (userType === 'patient') {
-      model = PatientsModel;
-    } else if (userType === 'doctor') {
-      model = DoctorsModel;
-    } else {
-      return res.status(400).json({ message: 'Invalid user type' });
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
   
-    model.findOne({ username: username })
-      .then(user => {
-        if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-        }
-        res.json({ walletValue: user.wallet });
-        
-      })
-      .catch(err => {
-        res.status(500).json({ error: err.message });
-      });
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token.replace('Bearer ', ''), "random");
+  
+      // Assuming you have the user type and username in the token payload
+      const userType = decoded.type;
+      const username = decoded.username;
+  
+      let model;
+  
+      if (userType === 'patient') {
+        model = PatientsModel;
+      } else if (userType === 'doctor') {
+        model = DoctorsModel;
+      } else {
+        return res.status(400).json({ message: 'Invalid user type' });
+      }
+  
+      model.findOne({ username: username })
+        .then(user => {
+          if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+          }
+          res.json({ walletValue: user.wallet });
+        })
+        .catch(err => {
+          res.status(500).json({ error: err.message });
+        });
+    } catch (error) {
+      res.status(401).json({ message: 'Invalid token' });
+    }
   });
   // view family memebers
   app.get('/view-family-members', async (req, res) => {
+    const token = req.header('Authorization');
+  
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  
     try {
-      const patient = await PatientsModel.findOne({ username: logged.username });
+      // Verify the token
+      const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+  
+      const patient = await PatientsModel.findOne({ username: decoded.username });
   
       if (!patient) {
         return res.status(404).json({ message: 'Patient not found' });
       }
+  
       const familyMembers = patient.familyMembers;
   
       res.json(familyMembers);
@@ -1120,11 +1373,20 @@ app.put("/update-family-member",async (req,res)=>{
     }
   });
   
+  
 
 // filter appointments by date/status for doc
 app.get('/doctorsAppointments', async (req, res) => {
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
   try {
-    const doctor = await DoctorsModel.findOne({ username: logged.username });
+    // Verify the token
+    const decoded = jwt.verify(token.replace('Bearer ', ''), "random");
+    const doctor = await DoctorsModel.findOne({ username: decoded.username });
 
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
@@ -1148,12 +1410,12 @@ app.get('/doctorsAppointments', async (req, res) => {
           date: appointment.date,
           status: appointment.status,
           patientName: patient.name,
-          followedUp:appointment.followedUp
+          followedUp:appointment.followedUp,
+          prescribed:appointment.prescribed
         };
         enhancedAppointments.push(enhancedAppointment);
       }
       } else if(appointment.familyMember.account==null){
-        console.log("Helloooo")
         // Find the doctor using the doctor's ID in the appointment
         const patient = await PatientsModel.findOne({ _id: appointment.patient });
   
@@ -1165,9 +1427,9 @@ app.get('/doctorsAppointments', async (req, res) => {
             status: appointment.status,
             patientName: patient.name,
             familyMember:appointment.familyMember,
-            followedUp:appointment.followedUp
+            followedUp:appointment.followedUp,
+            prescribed:appointment.prescribed
           };
-          console.log(enhancedAppointment);
           enhancedAppointments.push(enhancedAppointment);
         }
       }
@@ -1182,11 +1444,21 @@ app.get('/doctorsAppointments', async (req, res) => {
 
 app.get('/get-family-member-session-price/:familyMemberId/:doctorId', async (req, res) => {
   try {
+    // Retrieve the token from the request headers
+    const token = req.headers.authorization;
+
+    // Check if the token exists
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
     const familyMemberId = req.params.familyMemberId;
     const doctorId = req.params.doctorId;
 
     // Fetch patient details based on the username
-    const patient = await PatientsModel.findOne({ username: logged.username });
+    const patient = await PatientsModel.findOne({ username: decoded.username });
 
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
@@ -1263,9 +1535,17 @@ app.post('/upload-health-record', upload.single('recordFile'), async (req, res) 
 });
 // filter appointments by date/status for patient
 app.get('/patientsAppointments', async (req, res) => {
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
   try {
+    // Verify the token
+    const decoded = jwt.verify(token.replace('Bearer ', ''), "random");
     
-    const patient = await PatientsModel.findOne({ username: logged.username });
+    const patient = await PatientsModel.findOne({ username: decoded.username });
 
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
@@ -1340,9 +1620,20 @@ app.get('/doctors/:doctorId/patients-info', async (req, res) => {
 });
 app.get('/get-doctors-session-price/', async (req, res) => {
   try {
+    // Retrieve the token from the request headers
+    const token = req.headers.authorization;
+
+    // Check if the token exists
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+
     const doctors = await DoctorsModel.find({enrolled:'Approved'});
 
-    const patient = await PatientsModel.findOne({ username: logged.username });
+    const patient = await PatientsModel.findOne({ username: decoded.username });
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
     }
@@ -1368,10 +1659,17 @@ app.get('/get-doctors-session-price/', async (req, res) => {
 
 app.post('/wallet-payment', async (req, res) => {
   try {
+    const token = req.headers.authorization;
+
+    // Check if the token exists
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
       const { totalPaymentDue } = req.body;
 
       // Find the patient by username
-      const patient = await PatientsModel.findOne({ username: logged.username});
+      const patient = await PatientsModel.findOne({ username: decoded.username});
 
       if (!patient) {
           return res.status(404).json({ success: false, message: 'Patient not found.' });
@@ -1407,14 +1705,21 @@ app.get('/packages', async (req, res) => {
 app.post('/subscribe', async (req, res) => {
   const { self, packageId, familyMembers } = req.body;
   try {
+    const token = req.headers.authorization;
+
+    // Check if the token exists
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
     // Update the user's subscription
     if(self!="false"){
     await PatientsModel.findOneAndUpdate(
-      { username: logged.username },
+      { username: decoded.username },
       { subscribedPackage: packageId, subscriptionDate: new Date(), canceled: null}
     );
     }
-    const user = await PatientsModel.findOne({ username: logged.username });
+    const user = await PatientsModel.findOne({ username: decoded.username });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -1440,7 +1745,7 @@ app.post('/subscribe', async (req, res) => {
     }
     await updateMembers();
     const fam = await PatientsModel.findOneAndUpdate(
-      { username: logged.username },
+      { username: decoded.username },
       { familyMembers: members }
     );
 
@@ -1454,22 +1759,65 @@ app.post('/subscribe', async (req, res) => {
     res.status(500).json({ error: 'Subscription failed' });
   }
 });
+
 app.get('/get-my-package', async (req, res) => {
-  const result=new Object();
-  
-  const user=await PatientsModel.findOne({username:logged.username});
-  if(user){
-  const package=await PackagesModel.findOne({_id:user.subscribedPackage});
+  try {
+    // Retrieve the token from the request headers
+    const token = req.headers.authorization;
 
-  result.package=package;
-  result.subscribedDate=user.subscriptionDate;
-  result.canceled=user.canceled;
+    // Check if the token exists
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
 
-  res.json(result);
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+
+    // Fetch patient details based on the username from the token
+    const user = await PatientsModel.findOne({ username: decoded.username });
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const result = new Object();
+    const package = await PackagesModel.findOne({ _id: user.subscribedPackage });
+
+    result.package = package;
+    result.subscribedDate = user.subscriptionDate;
+    result.canceled = user.canceled;
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 app.post('/cancel-subscription', async (req, res) => {
-  await PatientsModel.findOneAndUpdate({username:logged.username},{canceled:new Date()})
+  try {
+    // Retrieve the token from the request headers
+    const token = req.headers.authorization;
+
+    // Check if the token exists
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+
+    // Update the user's subscription cancellation date
+    await PatientsModel.findOneAndUpdate({ username: decoded.username }, { canceled: new Date() });
+
+    res.status(200).json({ message: 'Subscription canceled successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 app.get('/get-family-member-package/:id', async (req, res) => {
   const memberId = req.params.id;
@@ -1488,61 +1836,109 @@ app.get('/get-family-member-package/:id', async (req, res) => {
 });
 app.get('/get-family-member-package-status/:id', async (req, res) => {
   try {
-      const memberId = req.params.id;
-      // Query the PackagesModel to find the family member's package
-      const patient = await PatientsModel.findOne({ username:logged.username});
-      const familyMember = patient.familyMembers.find((member) => member._id.equals(memberId));
+    const memberId = req.params.id;
 
-      if (!familyMember) {
-        return res.status(404).json({ error: 'Family member not found for the given memberID' });
-      }
+    // Retrieve the token from the request headers
+    const token = req.headers.authorization;
 
-      res.json({
-        canceled: familyMember.canceled,
-        subscriptionDate: familyMember.subscriptionDate,
-      });
+    // Check if the token exists
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+
+    // Query the PackagesModel to find the family member's package status
+    const patient = await PatientsModel.findOne({ username: decoded.username });
+    const familyMember = patient.familyMembers.find((member) => member._id.equals(memberId));
+
+    if (!familyMember) {
+      return res.status(404).json({ error: 'Family member not found for the given memberID' });
+    }
+
+    res.json({
+      canceled: familyMember.canceled,
+      subscriptionDate: familyMember.subscriptionDate,
+    });
   } catch (error) {
-      res.status(500).json({ error: 'Server error' });
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 app.post('/cancel-family-subscription/:id', async (req, res) => {
   try {
-      const memberId = req.params.id;
-      // Query the PatientsModel to find the family member's package
-      const patient = await PatientsModel.findOne({ username: logged.username });
-      const familyMember = patient.familyMembers.find((member) => member._id.equals(memberId));
+    const memberId = req.params.id;
 
-      if (familyMember) {
-          // Update the familyMember's 'canceled' field with the current date
-          familyMember.canceled = new Date();
+    // Retrieve the token from the request headers
+    const token = req.headers.authorization;
 
-          // Save the changes to the database
-          await patient.save();
+    // Check if the token exists
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
 
-          res.status(200).json({ message: 'Subscription canceled successfully' });
-      } else {
-          res.status(404).json({ error: 'Family member not found for the given memberID' });
-      }
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+
+    // Query the PatientsModel to find the family member's package
+    const patient = await PatientsModel.findOne({ username: decoded.username });
+    const familyMember = patient.familyMembers.find((member) => member._id.equals(memberId));
+
+    if (familyMember) {
+      // Update the familyMember's 'canceled' field with the current date
+      familyMember.canceled = new Date();
+
+      // Save the changes to the database
+      await patient.save();
+
+      res.status(200).json({ message: 'Subscription canceled successfully' });
+    } else {
+      res.status(404).json({ error: 'Family member not found for the given memberID' });
+    }
   } catch (error) {
-      res.status(500).json({ error: 'Server error' });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 app.post('/logout', (req, res) => {
-  logged = {
-    username: "",
-    in: "",
-    type: ""
-  };
-  res.status(200).json({ message: 'logged out successfully' });
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    
+    // Respond with a success message
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Error during token verification:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 app.post('/doctors/add-appointments', async (req, res) => {
   const { appointments } = req.body;
 
   try {
+    // Get the token from the authorization header
+    const token = req.header('Authorization');
+
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Extract the username from the token
+    const username = jwt.verify(token.replace('Bearer ', ''), 'random').username;
+
     // Find the doctor by username
-    const doctor = await DoctorsModel.findOne({ username:logged.username });
+    const doctor = await DoctorsModel.findOne({ username });
 
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
@@ -1560,12 +1956,20 @@ app.post('/doctors/add-appointments', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 app.post('/reserve-family-member', async (req, res) => {
   const { doctorId, dateTime , familyMemberId, totalPaymentDue} = req.body;
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
 
   try {
+    // Verify the token
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
     // Retrieve patient ID based on username
-    const patient = await PatientsModel.findOne({ username: logged.username });
+    const patient = await PatientsModel.findOne({ username: decoded.username });
 
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
@@ -1588,7 +1992,8 @@ app.post('/reserve-family-member', async (req, res) => {
       const tempAppoitnment = new AppointmentsModel({
         doctor: doctorId,
         patient: familyMember.account, // Assign the patient's ID
-        date: dateTime
+        date: dateTime,
+        cost: totalPaymentDue,
       });
       tempAppoitnment.save();
     }
@@ -1597,7 +2002,8 @@ app.post('/reserve-family-member', async (req, res) => {
       doctor: doctorId,
       patient: patient._id, // Assign the patient's ID
       date: dateTime,
-      familyMember: data
+      familyMember: data,
+      cost: totalPaymentDue,
     });
 
     // Remove the reserved dateTime from the doctor's availableSlots
@@ -1613,7 +2019,15 @@ app.post('/reserve-family-member', async (req, res) => {
         wallet:value
       }
     );
-
+    sendPatientAppointmentEmail(patient.email,doctor.name, dateTime.toLocaleString());
+    sendDoctorAppointmentEmail(doctor.email,patient.name, dateTime.toLocaleString());
+    const newNotification = new NotificationsModel({
+      patient: patient._id, // Replace with a valid patient ID
+      doctor: doctor._id,   // Replace with a valid doctor ID
+      date: dateTime,           // Replace with the desired date=
+    });
+    // Save the new Notification object to the database
+    newNotification.save();
     await newAppointment.save();
     await doctor.save();
 
@@ -1625,12 +2039,19 @@ app.post('/reserve-family-member', async (req, res) => {
 });
 app.post('/reserve', async (req, res) => {
   const { doctorId, dateTime, totalPaymentDue } = req.body;
-  const patientUsername = logged.username; // Assuming you have authentication middleware
+
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
 
   try {
+    // Verify the token
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    
     // Retrieve patient ID based on username
-    const patient = await PatientsModel.findOne({ username: patientUsername });
-
+    const patient = await PatientsModel.findOne({ username: decoded.username });
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
     }
@@ -1640,6 +2061,7 @@ app.post('/reserve', async (req, res) => {
       doctor: doctorId,
       patient: patient._id, // Assign the patient's ID
       date: dateTime,
+      cost: totalPaymentDue
     });
 
     // Remove the reserved dateTime from the doctor's availableSlots
@@ -1649,7 +2071,7 @@ app.post('/reserve', async (req, res) => {
     }
 
     const value=doctor.wallet+totalPaymentDue*0.9;
-    
+    const Doctor=await DoctorsModel.findOne({ _id: doctorId });
     await DoctorsModel.updateOne(
       { _id: doctorId },
       {
@@ -1657,10 +2079,17 @@ app.post('/reserve', async (req, res) => {
         wallet:value
       }
     );
-
+    sendPatientAppointmentEmail(patient.email,Doctor.name, dateTime.toLocaleString());
+    sendDoctorAppointmentEmail(Doctor.email,patient.name, dateTime.toLocaleString());
     await newAppointment.save();
     await doctor.save();
-
+    const newNotification = new NotificationsModel({
+      patient: patient._id, // Replace with a valid patient ID
+      doctor: Doctor._id,   // Replace with a valid doctor ID
+      date: dateTime,           // Replace with the desired date=
+    });
+    // Save the new Notification object to the database
+    newNotification.save();
     res.status(200).json({ message: 'Appointment reserved successfully' });
   } catch (error) {
     console.error(error);
@@ -1669,26 +2098,37 @@ app.post('/reserve', async (req, res) => {
 });
 app.post('/change-password', async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  const userType = logged.type; // Assuming you have a middleware to get user type
+
+  // Retrieve the token from the request headers
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
 
   try {
+    // Verify the token
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+
+    // Access the appropriate model based on user type
     let user;
 
-    // Check the user's type and access the appropriate model
-    if (userType === 'admin') {
-      user = await AdminsModel.findOne({ username: logged.username });
-    } else if (userType === 'patient') {
-      user = await PatientsModel.findOne({ username: logged.username });
-    } else if (userType === 'doctor') {
-      user = await DoctorsModel.findOne({ username: logged.username });
+    if (decoded.type === 'admin') {
+      user = await AdminsModel.findOne({ username: decoded.username });
+    } else if (decoded.type === 'patient') {
+      user = await PatientsModel.findOne({ username: decoded.username });
+    } else if (decoded.type === 'doctor') {
+      user = await DoctorsModel.findOne({ username: decoded.username });
     }
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Username does not exist' });
     }
+
     if (currentPassword !== user.password) {
       return res.status(400).json({ message: 'Current password is incorrect' });
     }
+
     // Update the user's password
     user.password = newPassword;
     await user.save();
@@ -1709,23 +2149,24 @@ const generateOTP = () => {
 
 app.post('/send-otp', async (req, res) => {
   const { username } = req.body;
+  const userNameLowered=username.toLowerCase();
   let email;
   let userType;
   let userModel;
   if (username) {
-    const patient = await PatientsModel.findOne({ username });
+    const patient = await PatientsModel.findOne({ username: userNameLowered });
     if (patient) {
       email = patient.email;
       userType = 'patient';
       userModel = PatientsModel;
     } else {
-      const admin = await AdminsModel.findOne({ username });
+      const admin = await AdminsModel.findOne({ username: userNameLowered });
       if (admin) {
         email = admin.email;
         userType = 'admin';
         userModel = AdminsModel;
       } else {
-        const doctor = await DoctorsModel.findOne({ username });
+        const doctor = await DoctorsModel.findOne({ username: userNameLowered });
         if (doctor) {
           email = doctor.email;
           userType = 'doctor';
@@ -1736,7 +2177,7 @@ app.post('/send-otp', async (req, res) => {
   }
 
   if (!email) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(404).json({ message: 'Username does not exist!' });
   }
 
   // Generate an OTP and store it
@@ -1755,7 +2196,7 @@ app.post('/verify-otp', (req, res) => {
   const storedOTP = otpStorage[username];
 
   if (!storedOTP.toString() || storedOTP.toString() !== otp) {
-    res.status(400).json({ message: 'Invalid OTP' });
+    res.status(400).json({ message: 'OTP is not correct' });
   } else {
     res.status(200).json({ message: 'OTP verified successfully' });
   }
@@ -1785,22 +2226,47 @@ app.post('/reset-password', async (req, res) => {
 
 app.get('/medicalRecords', async (req, res) => {
   try {
-    const patient = await PatientsModel.findOne({ username: logged.username });
+    // Retrieve the token from the request headers
+    const token = req.headers.authorization;
+
+    // Check if the token exists
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+
+    // Fetch patient details based on the username from the token
+    const patient = await PatientsModel.findOne({ username: decoded.username });
+
     if (!patient) {
       res.status(404).json({ error: 'Patient not found' });
     } else {
       res.status(200).json(patient.medicalHistory);
     }
   } catch (err) {
-    res.status(500).json({ error: 'Database error' });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
+    // Retrieve the token from the request headers
+    const token = req.headers.authorization;
+
+    // Check if the token exists
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
     const filePath = req.file.path;
     const fileName = req.file.originalname; 
-    const patient = await PatientsModel.findOne({ username: logged.username });
+    const patient = await PatientsModel.findOne({ username: decoded.username });
 
     if (!patient) {
       return res.status(404).json({ error: 'Patient not found' });
@@ -1819,26 +2285,74 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-//upload/remove documents (PDF,JPEG,JPG,PNG) for my medical history (Req 2)
-const fs = require('fs');
-const path = require('path');
+app.get('/get-health-records/', async (req, res) => {
+  try {
+    // Retrieve the token from the request headers
+    const token = req.headers.authorization;
 
-app.put('/upload-document', async (req, res) => {
-  const { document } = req.body;
-  const { type, data, filename } = document;
-  const allowedTypes = ['pdf', 'jpeg', 'jpg', 'png'];
-  const extension = filename.split('.').pop().toLowerCase();
+    // Check if the token exists
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
 
-  if (!allowedTypes.includes(extension)) {
-    return res.status(400).send('Invalid file type');
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+
+    // Fetch health records for the specific patient using the decoded username
+    const patient = await PatientsModel.findOne({ username: decoded.username });
+
+    if (!patient) {
+      return res.status(404).json({ success: false, message: 'Patient not found' });
+    }
+
+    res.json(patient.healthRecords);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
+});
 
-  const filePath = path.join(__dirname, 'medical-history', `${filename}`);
-  const fileExists = fs.existsSync(filePath);
 
-  if (type === 'add') {
-    if (fileExists) {
-      return res.status(400).send('File already exists');
+app.get('/uploads/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, 'uploads', filename); // Adjust the directory as needed
+
+  if (fs.existsSync(filePath)) {
+    res.download(filePath, filename, (err) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Internal Server Error');
+      }
+    });
+  } else {
+    res.status(404).send('File not found');
+  }
+});
+
+app.delete('/delete/:recordId', async (req, res) => {
+  try {
+    // Retrieve the token from the request headers
+    const token = req.headers.authorization;
+
+    // Check if the token exists
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    // Verify and decode the token to get the username
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    const { recordId } = req.params;
+    const patient = await PatientsModel.findOne({ username: decoded.username }).exec();
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    // Find the index of the record with the specified recordId
+    const recordIndex = patient.medicalHistory.findIndex((record) => record._id.toString() === recordId);
+
+    if (recordIndex === -1) {
+      return res.status(404).json({ error: 'Medical record not found' });
     }
 
     // Remove the record at the specified index
@@ -1846,29 +2360,43 @@ app.put('/upload-document', async (req, res) => {
 
     await patient.save();
     res.status(200).json({ message: 'File deleted successfully' });
-  } 
-    try {
-      // Convert the base64 data to a buffer
-      const fileBuffer = Buffer.from(data, 'base64');
-
-      // Write the buffer to the file system
-      fs.writeFileSync(filePath, fileBuffer);
-
-      // Add the file path to the patient's medicalHistory array
-      patient.medicalHistory.push(filePath);
-
-      // Save the patient
-      await patient.save();
-
-      res.status(200).json({ message: 'File uploaded successfully' });
-    }
-    catch (error) {
+  } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
   }
-
 });
+app.post('/follow-up/:appointmentId/:selectedSlot', async (req, res) => {
+  const { appointmentId, selectedSlot } = req.params;
+  try {
+    // Find the original appointment
+    const originalAppointment = await AppointmentsModel.findById(appointmentId);
 
+    if (!originalAppointment) {
+      return res.status(404).json({ message: 'Original appointment not found' });
+    }
+    const updatedDoctor = await DoctorsModel.findOneAndUpdate(
+      { _id: originalAppointment.doctor },
+      { $pull: { availableSlots: selectedSlot } }
+    );
+    updatedDoctor.save();
+    // Create a new follow-up appointment
+    const followUpAppointment = new AppointmentsModel({
+      date: new Date(selectedSlot),
+      patient: originalAppointment.patient,
+      doctor: originalAppointment.doctor,
+      familyMember:originalAppointment.familyMember,
+      type: "request"
+    });
+
+    // Save the follow-up appointment to the database
+    await followUpAppointment.save();
+
+    return res.status(200).json({ message: 'Follow-up appointment scheduled successfully', followUpAppointment });
+  } catch (error) {
+    console.error('Error scheduling follow-up:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
 // Endpoint for scheduling a follow-up
 app.post('/schedule-follow-up', async (req, res) => {
 
@@ -1899,292 +2427,888 @@ app.post('/schedule-follow-up', async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+app.get('/myDoctors', async (req, res) => {
+  const token = req.header('Authorization');
 
-app.get('/get-family-discount', async (req, res) => {
-  try {
-      const patient = await PatientsModel.findOne({username:logged.username});
-
-      if (!patient) {
-          return res.status(404).json({ error: 'Patient not found' });
-      }
-
-      if (patient.subscribedPackage&&!patient.canceled) {
-          const package = await PackagesModel.findById(patient.subscribedPackage);
-          if (package) {
-              // Fetch the family discount attribute from the package
-              const familyMemberDiscount = package.familyMemberDiscount /100|| 0;
-
-              // Return the family discount attribute
-              return res.json({ familyMemberDiscount });
-          }
-      }
-
-      // If the patient does not have a subscribed package or the package does not exist
-      // Return 0 as the family discount
-      return res.json({ familyMemberDiscount: 0 });
-  } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Internal Server Error' });
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
-});
 
-
-
-// request a followup
-app.post('/request-follow-up', async (req, res) => {
   try {
-    const { patientId, familyMemberId, originalAppointmentId, followUpDateTime } = req.body;
-
-    
-    if (!patientId && !familyMemberId) {
-      return res.status(400).json({ message: 'Either patientId or familyMemberId must be provided' });
-    }
-
-   
-    const originalAppointment = await AppointmentsModel.findById(originalAppointmentId);
-
-    if (!originalAppointment) {
-      return res.status(404).json({ message: 'Original appointment not found' });
-    }
-
-    const patient = patientId ? await PatientsModel.findById(patientId) : null;
-    const familyMember = familyMemberId ? await patient.familyMembers.id(familyMemberId) : null;
-
-    if (!patient && !familyMember) {
-      return res.status(404).json({ message: 'Patient or family member not found' });
-    }
-
-    const followUpRequest = new AppointmentsModel({
-      date: new Date(followUpDateTime),
-      patient: originalAppointment.patient,
-      doctor: originalAppointment.doctor,
-      familyMember: originalAppointment.familyMember,
-      type: "followup",
-      status: 'pending' 
-    });
-
-    await followUpRequest.save();
-
-    return res.status(200).json({ message: 'Follow-up appointment request submitted successfully', followUpRequest });
-  } catch (error) {
-    console.error('Error submitting follow-up request:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-
-
-// doctor accept or reject
-
-app.post('/decide-follow-up-request', async (req, res) => {
-  try {
-    const { originalAppointmentId, action } = req.body;
-
-    if (!originalAppointmentId || !action) {
-      return res.status(400).json({ message: 'Both originalAppointmentId and action must be provided' });
-    }
-
-    const originalAppointment = await AppointmentsModel.findById(originalAppointmentId);
-
-    if (!originalAppointment) {
-      return res.status(404).json({ message: 'Original appointment not found' });
-    }
-
-    
-    if (originalAppointment.followUpRequest && originalAppointment.followUpRequest.status === 'pending') {
-    
-      if (action === 'accept') {
-        originalAppointment.followUpRequest.status = 'accepted';
-      } else if (action === 'revoke') {
-        originalAppointment.followUpRequest.status = 'revoked';
-      } else {
-        return res.status(400).json({ message: 'Invalid action' });
-      }
-
-     
-      await originalAppointment.save();
-
-      return res.status(200).json({ message: 'Follow-up request processed successfully', originalAppointment });
-    } else {
-      return res.status(400).json({ message: 'No pending follow-up request for the original appointment' });
-    }
-  } catch (error) {
-    console.error('Error processing follow-up request:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-});
-// doctor reschedule appointment
-app.post('/reschedule-appointment', async (req, res) => {
-  try {
-    const { appointmentId, newDateTime } = req.body;
-
-    if (!appointmentId || !newDateTime) {
-      return res.status(400).json({ message: 'Both appointmentId and newDateTime must be provided' });
-    }
-
-    const appointment = await AppointmentsModel.findById(appointmentId);
-
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-
-    appointment.date = new Date(newDateTime);
-    await appointment.save();
-
-    return res.status(200).json({ message: 'Appointment rescheduled successfully', appointment });
-  } catch (error) {
-    console.error('Error rescheduling appointment:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-});
-//patient recieve refund when doctor cancels an appointment
-app.post('/refund', async (req, res) => {
-  try {
-    const { appointmentId } = req.body;
-
-    if (!appointmentId) {
-      return res.status(400).json({ message: 'appointmentId must be provided' });
-    }
-
-    const appointment = await AppointmentsModel.findById(appointmentId);
-
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-
-    const patient = await PatientsModel.findById(appointment.patient);
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    const patient = await PatientsModel.findOne({ username: decoded.username });
 
     if (!patient) {
-      return res.status(404).json({ message: 'Patient not found' });
+      return res.status(404).json({ error: 'Patient not found' });
     }
 
-    patient.wallet += appointment.totalPaymentDue;
-    await patient.save();
-
-    return res.status(200).json({ message: 'Refund successful', patient });
-  } catch (error) {
-    console.error('Error processing refund:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-});
-//patient can select an appointment's date and time for themselves or a family member
-app.post('/select-appointment', async (req, res) => {
-  try {
-    const { doctorId, dateTime, familyMemberId } = req.body;
-
-    if (!doctorId || !dateTime) {
-      return res.status(400).json({ message: 'Both doctorId and dateTime must be provided' });
-    }
-
-    const patient = await PatientsModel.findOne({ username: logged.username });
-
-    if (!patient) {
-      return res.status(404).json({ message: 'Patient not found' });
-    }
-
-    const familyMember = familyMemberId ? patient.familyMembers.id(familyMemberId) : null;
-
-    if (familyMemberId && !familyMember) {
-      return res.status(404).json({ message: 'Family member not found' });
-    }
-
-    const appointment = new AppointmentsModel({
-      doctor: doctorId,
+    const appointments = await AppointmentsModel.find({
       patient: patient._id,
-      date: new Date(dateTime),
-      familyMember: familyMember ? familyMember : null
+      cancelled: false,
     });
 
-    await appointment.save();
+    const doctorsInfo = await Promise.all(
+      appointments.map(async (appointment) => {
+        const doctorId = appointment.doctor;
+        const doctor = await DoctorsModel.findOne({ _id: doctorId });
 
-    return res.status(200).json({ message: 'Appointment selected successfully', appointment });
-  } catch (error) {
-    console.error('Error selecting appointment:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-
-// reschedule an appointment for myself or for a family member
-app.put('/reschedule-appointment', async (req, res) => {
-  const { appointmentId, date } = req.body;
-  try {
-    const appointment = await AppointmentModel.findById(appointmentId);
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-    appointment.date = date;
-    await appointment.save();
-    res.status(200).json({ message: 'Appointment rescheduled successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-}
-);
-
-// reschedule an appointment for a patient
-app.put('/reschedule-appointment/:appointmentId', async (req, res) => {
-  const appointmentId = req.params.appointmentId;
-  const { date } = req.body;
-  try {
-    const appointment = await AppointmentModel.findById(appointmentId);
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-    appointment.date = date;
-    await appointment.save();
-    res.status(200).json({ message: 'Appointment rescheduled successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-}
-);
-
-// receive a notification that my appointment is cancelled or rescheduled on the system and by mail 
-app.post('/cancel-appointment', async (req, res) => {
-  const { appointmentId } = req.body;
-  try {
-    const appointment = await AppointmentModel.findById(appointmentId);
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-    appointment.status = 'cancelled';
-    await appointment.save();
-
-    // Send notification by mail (3ala hasb hnb3t b eh b2a)
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.example.com', // SMTP server host
-      port: 587, // SMTP server port
-      secure: false, // Set to true if using a secure connection (e.g. SSL/TLS)
-      auth: {
-        user: 'your-email@example.com', // Your email address
-        pass: 'your-password', // Your email password
-      },
-    });
-
-    const mailOptions = {
-      from: 'your-email@example.com',
-      to: 'recipient-email@example.com',
-      subject: 'Appointment Update',
-      text: 'Your appointment has been cancelled.',
+        return {
+          doctorName: doctor.name,
+          doctorId: doctor._id,
+        };
+      })
+    );
+    // Function to filter unique values based on doctorId
+    const filterUniqueDoctors = (doctorsInfo) => {
+      const uniqueDoctorIds = new Set();
+      return doctorsInfo.filter((info) => {
+        if (!uniqueDoctorIds.has(info.doctorId.toString())) {
+          uniqueDoctorIds.add(info.doctorId.toString());
+          return true;
+        }
+        return false;
+      });
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Failed to send notification by mail' });
-      } else {
-        console.log('Notification sent by mail:', info.response);
-        res.status(200).json({ message: 'Appointment cancelled successfully' });
-      }
+    const filteredDoctorsInfo = filterUniqueDoctors(doctorsInfo);
+    return res.json(filteredDoctorsInfo);
+  } catch (error) {
+    console.error('Error fetching myDoctors:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/myPatients', async (req, res) => {
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    const doctor = await DoctorsModel.findOne({ username: decoded.username });
+
+    if (!doctor) {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+
+    const appointments = await AppointmentsModel.find({
+      doctor: doctor._id,
+      cancelled: false,
     });
+
+    // Use Set to store unique patient IDs
+    const uniquePatientIds = new Set();
+
+    // Map appointments to patient information
+    const patientsInfo = await Promise.all(
+      appointments.map(async (appointment) => {
+        const patientId = appointment.patient;
+
+        // Fetch patient information
+        const patient = await PatientsModel.findOne({ _id: patientId });
+
+        // Check if patient exists before adding to the result
+        if (patient) {
+          return {
+            patientName: patient.name,
+            patientId: patient._id.toString(), // Convert to string for consistency
+          };
+        }
+
+        return null; // Skip if patient not found
+      })
+    );
+
+    // Function to filter unique values based on patientId
+    const filterUniquePatients = (patientsInfo) => {
+      const unique = patientsInfo.filter((info) => {
+        if (!uniquePatientIds.has(info.patientId)) {
+          uniquePatientIds.add(info.patientId);
+          return true;
+        }
+        return false;
+      });
+      return unique;
+    };
+
+    const filteredPatientsInfo = filterUniquePatients(patientsInfo);
+
+    return res.json(filteredPatientsInfo);
+  } catch (error) {
+    console.error('Error fetching myPatients:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/myDoctors', async (req, res) => {
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    const patient = await PatientsModel.findOne({ username: decoded.username });
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+    const appointments = await AppointmentsModel.find({
+      patient: patient._id,
+      cancelled: false,
+    });
+
+    // Use Set to store unique patient IDs
+    const uniqueDoctorIds = new Set();
+
+    // Map appointments to patient information
+    const doctorsInfo = await Promise.all(
+      appointments.map(async (appointment) => {
+        const doctorId = appointment.doctor;
+
+        // Fetch patient information
+        const doctor = await DoctorsModel.findOne({ _id: doctorId });
+
+        // Check if patient exists before adding to the result
+        if (doctor) {
+          return {
+            doctorName: doctor.name,
+            doctorId: doctor._id.toString(), // Convert to string for consistency
+          };
+        }
+
+        return null; // Skip if patient not found
+      })
+    );
+
+    // Function to filter unique values based on patientId
+    const filterUniquePatients = (doctorsInfo) => {
+      const unique = doctorsInfo.filter((info) => {
+        if (!uniqueDoctorIds.has(info.doctorId)) {
+          uniqueDoctorIds.add(info.doctorId);
+          return true;
+        }
+        return false;
+      });
+      return unique;
+    };
+
+    const filteredPatientsInfo = filterUniquePatients(doctorsInfo);
+
+    return res.json(doctorsInfo);
+  } catch (error) {
+    console.error('Error fetching myPatients:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/get-family-discount', async (req, res) => {
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+
+    const patient = await PatientsModel.findOne({ username: decoded.username });
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    if (patient.subscribedPackage && !patient.canceled) {
+      const package = await PackagesModel.findById(patient.subscribedPackage);
+      if (package) {
+        // Fetch the family discount attribute from the package
+        const familyMemberDiscount = package.familyMemberDiscount / 100 || 0;
+
+        // Return the family discount attribute
+        return res.json({ familyMemberDiscount });
+      }
+    }
+    return res.json({ familyMemberDiscount: 0 });
   } catch (error) {
     console.error(error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.post('/cancel-appointment/:id', async (req, res) => {
+  const appointmentId = req.params.id;
+
+  try {
+    // Find the appointment by ID
+    const appointment = await AppointmentsModel.findById(appointmentId);
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    // Check if the appointment is scheduled
+    if (!(appointment.status === 'scheduled')) {
+      return res.status(400).json({ message: 'Cannot cancel appointment with status other than scheduled' });
+    }
+
+    // Retrieve doctor information
+    const doctor = await DoctorsModel.findById(appointment.doctor);
+
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    const patient=await PatientsModel.findById(appointment.patient);
+
+    // Check if the cancellation is allowed (e.g., at least 24 hours before the appointment)
+    const appointmentDate = new Date(appointment.date);
+    const currentDate = new Date();
+    const timeDifference = appointmentDate.getTime() - currentDate.getTime();
+    const hoursDifference = timeDifference / (1000 * 3600);
+    doctor.availableSlots.push(appointmentDate);
+    if (hoursDifference > 24) {
+      // Deduct cost from both doctor and patient (you need to define these in your models)
+      doctor.wallet -= appointment.cost;
+      // Assuming the patient's balance is stored in the appointment model
+      patient.wallet+=appointment.cost;
+      // Save changes
+      
+    }
+    sendPatientCancelEmail(patient.email, doctor.name,appointmentDate)
+    sendDoctorCancelEmail(doctor.email,patient.name,appointmentDate)
+    const newNotification = new NotificationsModel({
+      patient: patient._id, // Replace with a valid patient ID
+      doctor: doctor._id,   // Replace with a valid doctor ID
+      date: appointmentDate,
+      type:"cancel"           // Replace with the desired date=
+    });
+    // Save the new Notification object to the database
+    newNotification.save();
+    await doctor.save();
+    await patient.save();
+
+    // Update appointment status to 'canceled'
+    appointment.cancelled = true;
+    await appointment.save();
+
+    // Send success response
+    res.json({ message: 'Appointment canceled successfully' });
+  } catch (error) {
+    console.error('Error canceling appointment:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 
-app.listen(3001,'localhost')
+
+app.post('/cancel-appointment-doctor/:id', async (req, res) => {
+  const appointmentId = req.params.id;
+
+  try {
+    // Find the appointment by ID
+    const appointment = await AppointmentsModel.findById(appointmentId);
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    // Check if the appointment is scheduled
+    if (appointment.status !== 'scheduled') {
+      return res.status(400).json({ message: 'Cannot cancel appointment with status other than scheduled' });
+    }
+
+    // Retrieve doctor information
+    const doctor = await DoctorsModel.findById(appointment.doctor);
+
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    const patient=await PatientsModel.findById(appointment.patient);
+
+    // Check if the cancellation is allowed (e.g., at least 24 hours before the appointment)
+    const appointmentDate = new Date(appointment.date);
+
+      // Deduct cost from both doctor and patient (you need to define these in your models)
+      doctor.wallet -= appointment.cost;
+      // Assuming the patient's balance is stored in the appointment model
+      patient.wallet+=appointment.cost;
+      // Save changes
+    sendPatientCancelEmail(patient.email, doctor.name,appointmentDate)
+    sendDoctorCancelEmail(doctor.email,patient.name,appointmentDate)
+    
+    await doctor.save();
+    await patient.save();
+
+    // Update appointment status to 'canceled'
+    appointment.cancelled = true;
+    await appointment.save();
+
+    // Send success response
+    res.json({ message: 'Appointment canceled successfully' });
+  } catch (error) {
+    console.error('Error canceling appointment:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/reschedule-appointment', async (req, res) => {
+  const { rescheduleAppointmentId, rescheduleDateTime } = req.body;
+
+  try {
+    // Find the appointment by ID
+    const appointment = await AppointmentsModel.findById(rescheduleAppointmentId);
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    // Update the appointment with the new date
+    appointment.date = new Date(rescheduleDateTime);
+    await appointment.save();
+    const patient=await PatientsModel.findOne({_id:appointment.patient})
+    const doctor=await DoctorsModel.findOne({_id:appointment.doctor})
+    sendPatientRescheduleEmail(patient.email, doctor.name,appointment.date)
+    sendDoctorRescEmail(doctor.email,patient.name,appointment.date)
+    const newNotification = new NotificationsModel({
+      patient: patient._id, // Replace with a valid patient ID
+      doctor: doctor._id,   // Replace with a valid doctor ID
+      date: rescheduleDateTime,
+      type: "resc"           // Replace with the desired date=
+    });
+    // Save the new Notification object to the database
+    newNotification.save();
+    // Send success response
+    res.json({ message: 'Appointment rescheduled successfully' });
+  } catch (error) {
+    console.error('Error rescheduling appointment:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+// Assume you have a route like '/available-slots/:doctorId'
+app.get('/available-slots/:appointmnetId', async (req, res) => {
+  try {
+    const appointmentId = req.params.appointmnetId;
+
+    const appointment=await AppointmentsModel.findById(appointmentId);
+
+    const doctorId=appointment.doctor;
+    // Retrieve doctor information from the database using the doctorId
+    const doctor = await DoctorsModel.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    // Assuming the doctor model has an 'availableSlots' property
+    const availableSlots = doctor.availableSlots.filter((slot) => new Date(slot) > new Date());
+    // Return the available slots to the client
+    res.status(200).json(availableSlots);
+  } catch (error) {
+    console.error('Error fetching available slots:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+app.post('/reschedule-appointment-patient', async (req, res) => {
+  const { appointmentId, rescheduleDateTime } = req.body;
+  try {
+    // Find the appointment by ID
+    const appointment = await AppointmentsModel.findById(appointmentId);
+    const patient=await PatientsModel.findOne({_id:appointment.patient});
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    const doctor=await DoctorsModel.findById(appointment.doctor);
+    doctor.availableSlots.pull(new Date(rescheduleDateTime));
+    doctor.availableSlots.push(appointment.date);
+    // Update the appointment with the new date
+    appointment.date = new Date(rescheduleDateTime);
+    await appointment.save();
+    sendPatientRescheduleEmail(patient.email, doctor.name,appointment.date)
+    sendDoctorRescEmail(doctor.email,patient.name,appointment.date)
+    const newNotification = new NotificationsModel({
+      patient: patient._id, // Replace with a valid patient ID
+      doctor: doctor._id,   // Replace with a valid doctor ID
+      date: appointment.date, 
+      type:"resc"          // Replace with the desired date=
+    });
+    // Save the new Notification object to the database
+    newNotification.save();
+    // Send success response
+    res.json({ message: 'Appointment rescheduled successfully' });
+  } catch (error) {
+    console.error('Error rescheduling appointment:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/getRequests', async (req, res) => {
+  const token = req.header('Authorization');
+  
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+      const doctor=await DoctorsModel.findOne({username:decoded.username})
+      // Fetch all appointments with type 'request'
+      const appointments = await AppointmentsModel.find({ type: 'request',doctor:doctor._id });
+
+      // Create an array to store the formatted appointment data
+      const formattedAppointments = [];
+
+      // Loop through each appointment and retrieve patient and family member names
+      for (const appointment of appointments) {
+          const patient = await PatientsModel.findById(appointment.patient);
+          let patientName = patient ? patient.name : 'Unknown Patient';
+
+          if (appointment.familyMember) {
+              const familyMember = patient.familyMembers.find(member => member._id.equals(appointment.familyMember));
+              patientName = familyMember ? familyMember.name : 'Unknown Family Member';
+          }
+
+          // Add formatted appointment data to the array
+          formattedAppointments.push({
+              appointmentId: appointment._id,
+              appointmentDate: appointment.date.toLocaleString(),
+              patientName: patientName,
+          });
+      }
+
+      // Send the formatted appointment data in the response
+      res.json(formattedAppointments);
+  } catch (error) {
+      // Handle errors
+      console.error('Error fetching appointment requests:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/rejectRequest', async (req, res) => {
+  const token = req.header('Authorization');
+  
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  
+    try {
+
+      const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+
+      const doctorUsername = decoded.username;
+
+      // Get the appointment ID from the request body
+      const { appointmentId } = req.body;
+
+      // Find the appointment to be rejected
+      const appointment = await AppointmentsModel.findById(appointmentId);
+
+      if (!appointment) {
+          return res.status(404).json({ error: 'Appointment not found' });
+      }
+
+      // Remove the appointment from the appointmentsModel
+      await AppointmentsModel.findByIdAndRemove(appointmentId);
+
+      // Push the appointment date to the doctor's available slots
+      const doctor = await DoctorsModel.findOne({ username: doctorUsername });
+
+      if (doctor) {
+          doctor.availableSlots.push(appointment.date);
+          await doctor.save();
+      }
+
+      res.json({ message: 'Appointment rejected successfully' });
+  } catch (error) {
+      // Handle errors
+      console.error('Error rejecting appointment:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/acceptRequest', async (req, res) => {
+  try {
+      const { appointmentId } = req.body;
+      const appointment = await AppointmentsModel.findById(appointmentId);
+
+      if (!appointment) {
+          return res.status(404).json({ error: 'Appointment not found' });
+      }
+
+      appointment.type = 'followup';
+      await appointment.save();
+
+      res.json({ message: 'Appointment accepted successfully' });
+  } catch (error) {
+      console.error('Error accepting appointment:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/add-prescription', async (req, res) => {
+  const { prescription, appointmentId } = req.body;
+  const ObjectId = mongoose.Types.ObjectId
+const medicines = prescription.map(item => ({
+  name: item.name,
+  dose: {
+      daily: item.dosage.timesDaily || 1,
+      days: item.dosage.numberOfDays || 1,
+  },
+  pharmacy: item.pharmacy
+}));
+  try {
+    const appointment=await AppointmentsModel.findOne({_id:appointmentId});
+    await axios.post('http://localhost:3001/generate-pdf', { prescription, appointmentId });
+
+    const updatePrescription=await PrescriptionModel.findOne({appointmentId:appointmentId})
+    if(updatePrescription){
+      updatePrescription.medicines= medicines;
+      updatePrescription.save();
+      res.json("success");
+    }
+    else{
+    const newPrescription = new PrescriptionModel({
+      medicines: medicines,
+      appointmentId: appointmentId,
+      patientID:appointment.patient,
+      doctorID:appointment.doctor,
+      fileName:appointmentId+".pdf",
+      date:new Date()
+  });
+  if(appointment.familyMember){
+    newPrescription.familyMmeber=appointment.familyMember.nationalID
+  }
+  newPrescription.save();
+
+  appointment.prescribed=newPrescription._id;
+  appointment.save();
+  res.json("success");
+  }} catch (error) {
+      console.error('Error adding prescription:', error);
+      res.status(500).json({ error: 'Error adding prescription' });
+  }
+});
+app.get('/getPrescription', async (req, res) => {
+  const appointmentId = req.query.appointmentId;
+  try {
+    const ObjectId = mongoose.Types.ObjectId;
+      // Check if the appointment has a prescription
+      const prescription = await PrescriptionModel.findOne({ appointmentId: new ObjectId(appointmentId) });
+      if(prescription.filled){
+        res.json("filled");
+      }
+      else if (prescription) {
+          res.json(prescription.medicines);
+      } 
+  } catch (error) {
+      console.error('Error getting prescription:', error);
+      res.status(500).json({ error: 'Error getting prescription' });
+  }
+});
+
+// Assuming you have a PrescriptionModel and MedicinesModel imported
+
+app.get('/getPrescriptionDetails/:prescriptionId', async (req, res) => {
+  const { prescriptionId } = req.params;
+  try {
+    // Find the prescription details by prescriptionId
+    const prescription = await PrescriptionModel.findOne({_id:prescriptionId});
+    if (!prescription) {
+      return res.status(404).json({ error: 'Prescription not found' });
+    }
+    const updatedMedicines = await Promise.all(
+      prescription.medicines.map(async (medicine) => {
+        try {
+          if(medicine.pharmacy){
+          const response = await axios.get(`http://localhost:3002/medicines/${medicine.name}`);
+          const { name, price, available, quantity, fileName, _id } = response.data;
+          return { name, price,available, quantity, fileName, _id };
+          }
+          else{
+            return null;
+          }
+        } catch (error) {
+          console.error(`Error fetching medicine details for ${medicine.name}:`, error);
+          return null;
+        }
+      })
+    );
+    const filteredMedicines = updatedMedicines.filter((medicine) => medicine !== null);
+
+    res.json(filteredMedicines);
+  } catch (error) {
+    console.error('Error fetching prescription details:', error);
+    res.status(500).json({ error: 'Error fetching prescription details' });
+  }
+});
+
+app.get('/patientName',async(req,res)=>{
+  const token = req.header('Authorization');
+  
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+  const patient=await PatientsModel.findOne({username:decoded.username});
+  res.json(patient.name);
+  
+});
+
+app.post('/patientDiscount',async(req,res)=>{
+  const token = req.header('Authorization');
+  const { prescriptionID } = req.body;
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+  const patient=await PatientsModel.findOne({username:decoded.username});
+  const pres=await PrescriptionModel.findOne({_id:prescriptionID})
+  const appointment=await AppointmentsModel.findOne({_id:pres.appointmentId})
+  if(!appointment.familyMember){
+    const package=await PackagesModel.findOne({_id:patient.subscribedPackage})
+    if(package&&package.medicinesDiscount)
+    res.json(package.medicinesDiscount/100);
+    else
+    res.json(0);
+  }
+  else {
+    const familyMember = patient.familyMembers.find(member => member.name.toString() === appointment.familyMember.name.toString());
+  
+    if (!familyMember) {
+      return res.status(404).json({ message: 'Family member not found' });
+    }
+    const package = await PackagesModel.findOne({ _id: familyMember.subscribedPackage });
+    if (package && package.medicinesDiscount) {
+      res.json(package.medicinesDiscount / 100);
+    } else {
+      res.json(0);
+    }
+  }
+  
+  
+});
+
+app.put('/fillPres/:prescriptionId', async (req, res) => {
+  const prescriptionId = req.params.prescriptionId;
+
+  try {
+    // Update the prescription with the provided ID and set filled to true
+    await PrescriptionModel.findByIdAndUpdate(prescriptionId, { filled: true });
+
+    // Send a success response
+    res.status(200).json({ success: true, message: 'Prescription filled successfully' });
+  } catch (error) {
+    console.error('Error filling prescription:', error);
+    res.status(500).json({ success: false, error: 'Error filling prescription' });
+  }
+});
+
+app.get('/get-notifications', async (req, res) => {
+  try {
+    const token = req.header('Authorization');
+    const decoded = jwt.verify(token.replace('Bearer ', ''), 'random');
+    const patient=await PatientsModel.findOne({username:decoded.username});
+    const doctor=await DoctorsModel.findOne({username:decoded.username});
+
+    if(patient){
+      const notifications = await NotificationsModel
+      .find({ patient: patient._id })
+      .sort({ createdAt: -1 }) // Sort in descending order by createdAt
+      .limit(5);
+    
+    const formattedNotifications = await Promise.all(notifications.map(async (notification) => {
+      let doctor=await DoctorsModel.findOne(notification.doctor);
+      let message;
+    
+      switch (notification.type) {
+        case 'new':
+          message = `You have reserved an appointment on ${notification.date} with doctor: ${doctor.name}.`;
+          break;
+        case 'cancel':
+          message = `Your appointment with doctor: ${doctor.name} on ${notification.date} has been canceled.`;
+          break;
+        case 'resc':
+          message = `Your appointment with doctor: ${doctor.name} has been rescheduled on ${notification.date}.`;
+          break;
+        default:
+          message = 'Unknown notification type.';
+      }
+    
+      // Return a new object with the modified message
+      return {
+        ...notification.toObject(),
+        message,
+      };
+    }));
+    res.json(formattedNotifications);
+    
+    }
+    else{
+      const notifications = await NotificationsModel
+      .find({ doctor: doctor._id })
+      .sort({ createdAt: -1 }) // Sort in descending order by createdAt
+      .limit(5);
+      const formattedNotifications = await Promise.all(notifications.map(async (notification) => {
+        let patient=await PatientsModel.findOne(notification.patient);
+        let message;
+      
+        switch (notification.type) {
+          case 'new':
+            message = `Patient: ${patient.name} have reserved an appointment on ${notification.date} with you.`;
+            break;
+          case 'cancel':
+            message = `Appointment with Patient: ${patient.name} on ${notification.date} has been canceled.`;
+            break;
+          case 'resc':
+            message = `Appointment with Patient: ${patient.name} has been rescheduled on ${notification.date}.`;
+            break;
+          default:
+            message = 'Unknown notification type.';
+        }
+      
+        // Return a new object with the modified message
+        return {
+          ...notification.toObject(),
+          message,
+        };
+      }));
+    res.json(formattedNotifications);
+
+    }
+    
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+app.post('/createRoom', async (req, res) => {
+  const { doctorId } = req.body;
+  const token = req.header('Authorization');
+  
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+      const patient=await PatientsModel.findOne({username:decoded.username});
+      const patientId=patient._id;
+    // Check if a room exists with the given patientId and doctorId
+    const existingRoom = await RoomsModel.findOne({ patientId, doctorId });
+
+    if (existingRoom) {
+      res.json({ roomId: existingRoom._id });
+    } else {
+      // Create a new room and add it to the RoomsModel
+      const newRoom = new RoomsModel({ patientId, doctorId });
+      await newRoom.save();
+
+      res.json({ roomId: newRoom._id });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/createRoomDoctor', async (req, res) => {
+  const { patientId } = req.body;
+  const token = req.header('Authorization');
+  
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+      const doctor=await DoctorsModel.findOne({username:decoded.username});
+      const doctorId=doctor._id;
+    // Check if a room exists with the given patientId and doctorId
+    const existingRoom = await RoomsModel.findOne({ patientId, doctorId });
+
+    if (existingRoom) {
+      res.json({ roomId: existingRoom._id });
+    } else {
+      // Create a new room and add it to the RoomsModel
+      const newRoom = new RoomsModel({ patientId, doctorId });
+      await newRoom.save();
+
+      res.json({ roomId: newRoom._id });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/createVideoRoom', async (req, res) => {
+  const { doctorId } = req.body;
+  const token = req.header('Authorization');
+  
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+      const patient=await PatientsModel.findOne({username:decoded.username});
+      const patientId=patient._id;
+    // Check if a room exists with the given patientId and doctorId
+    const existingRoom = await videoRoomsModel.findOne({ patientId, doctorId });
+
+    if (existingRoom) {
+      res.json({ roomId: existingRoom._id });
+    } else {
+      // Create a new room and add it to the RoomsModel
+      const newRoom = new videoRoomsModel({ patientId, doctorId });
+      await newRoom.save();
+
+      res.json({ roomId: newRoom._id });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/createVideoRoomDoctor', async (req, res) => {
+  const { patientId } = req.body;
+  const token = req.header('Authorization');
+  
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token.replace('Bearer ', ''), 'random'); 
+      const doctor=await DoctorsModel.findOne({username:decoded.username});
+      const doctorId=doctor._id;
+    // Check if a room exists with the given patientId and doctorId
+    const existingRoom = await videoRoomsModel.findOne({ patientId, doctorId });
+
+    if (existingRoom) {
+      res.json({ roomId: existingRoom._id });
+    } else {
+      // Create a new room and add it to the RoomsModel
+      const newRoom = new videoRoomsModel({ patientId, doctorId });
+      await newRoom.save();
+
+      res.json({ roomId: newRoom._id });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
