@@ -527,3 +527,10 @@ Special thanks to the following contributors and resources:
 - [YouTube - Video Chat using WebRTC](https://youtu.be/DvlyzDZDEq4?si=YCSSbq0UQGF4uDhC)
 
 - [YouTube - Chat App using Socket.io and Node.js](https://youtu.be/rxzOqP9YwmM?si=tJ6b6x93pSjlqRVT)
+
+# License
+
+- **Stripe**:
+  - The payment processing in this project involves the use of Stripe services.
+  - Please review [Stripe's licensing information](https://stripe.com/legal/spc/licenses) for details on their terms and conditions.
+
