@@ -134,15 +134,34 @@ The system serves different type of users (Admins, Patients, and Doctors)
   
     * View Wallet.
   
-    * Chat with patient.
+    * Video Call/Chat with patient.
   
     * Cancel/reschedule appointments.
   
     * Reserve follow-up for the patient.
   
-    * Change Password
+    * Change/Reset Password
     
     * Update information
+    * View notifications
   
 </details>  
 
+3. <details><summary>As a Patient, you can</summary> 
+    
+    * Add/View your Family Members
+    * Add another patient account as a family member
+    
+    * View, search, and filter (by available appointment slots and specialty) All Doctors on the System
+    
+    * Subscribe/Cancel Health Package.
+    * Reserve, reschedule, and cancel appointments for yourself and your family members.
+    * Request a follow-up.
+    * View, download, and order prescriptions.
+    * Chat/Video call with your doctors.
+    * Upload a Medical History record.
+    * Pay for appointments and health packages using wallet/credit card
+    * View wallet
+    * View notfications
+    * Change/Reset Password
+</details>
