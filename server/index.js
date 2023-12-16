@@ -1846,10 +1846,27 @@ app.put('/upload-document', async (req, res) => {
 
     await patient.save();
     res.status(200).json({ message: 'File deleted successfully' });
-  } catch (error) {
+  } 
+    try {
+      // Convert the base64 data to a buffer
+      const fileBuffer = Buffer.from(data, 'base64');
+
+      // Write the buffer to the file system
+      fs.writeFileSync(filePath, fileBuffer);
+
+      // Add the file path to the patient's medicalHistory array
+      patient.medicalHistory.push(filePath);
+
+      // Save the patient
+      await patient.save();
+
+      res.status(200).json({ message: 'File uploaded successfully' });
+    }
+    catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
   }
+
 });
 
 // Endpoint for scheduling a follow-up
