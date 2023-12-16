@@ -2,22 +2,36 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
 
 function RemoveDoctors() {
   const navigate = useNavigate();
   const [doctors, setDoctors] = useState([]);
   const [message, setMessage] = useState('');
   useEffect(() => {
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`)
-      .then((response) => {
-        const responseData = response.data;
-        if (responseData.type.toLowerCase() !== "admin" || responseData.in !== true) {
-          navigate('/login')
-          return null;
-        }
-      })
-  }, []);
+    try {
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+      if (!token) {
+        // If the token doesn't exist, navigate to the login page
+        navigate('/login');
+        return;
+      }
+
+      // Decode the token to get user information
+      const decodedToken = jwtDecode(token);
+      const userType = decodedToken.type.toLowerCase();
+
+      if (userType !== 'admin') {
+        // If the user is not a patient or is not logged in, navigate to the login page
+        navigate('/login');
+      }
+    } catch (error) {
+
+    }
+  }, [navigate]);
+
   useEffect(() => {
     // Fetch doctors from the server
     axios.get('http://localhost:3001/get-doctors') // Update the API endpoint to fetch doctors
@@ -44,8 +58,8 @@ function RemoveDoctors() {
   };
 
   const tableStyles = {
-    width:'75vw',
-    textAlign:'center',
+    width: '75vw',
+    textAlign: 'center',
     maxWidth: '75vw',
     margin: 'auto',
     border: '1px solid #ccc', // Add border to the table
@@ -55,8 +69,9 @@ function RemoveDoctors() {
   const headerStyles = {
     fontSize: '24px',
     fontWeight: 'bold',
-    color: '#007BFF',
+    color: 'navy',
     marginBottom: '20px',
+    textAlign: 'center'
   };
 
   const listItemStyles = {
@@ -80,8 +95,9 @@ function RemoveDoctors() {
 
   return (
     <div>
-      <Navbar/>
-      <h2 style={headerStyles}>Doctors</h2>
+      <Navbar />
+      <br></br>
+      <h2 style={headerStyles}>List of Doctors</h2>
       {message && <div style={{ backgroundColor: 'red', color: 'white', padding: '10px', borderRadius: '5px' }}>{message}</div>}
       <table style={tableStyles}>
         <thead>
@@ -107,7 +123,23 @@ function RemoveDoctors() {
               <td style={{ border: '1px solid #ccc', padding: '10px' }}>{doctor.mobileNumber}</td>
               <td style={{ border: '1px solid #ccc', padding: '10px' }}>{doctor.specialty}</td>
               <td style={{ border: '1px solid #ccc', padding: '10px' }}>
-                <button style={buttonStyles} onClick={() => handleRemove(doctor._id)}>Remove</button>
+                <button
+                  style={{
+                    marginRight: '10px',
+                    backgroundColor: 'gray',
+                    color: 'white',
+                    border: 'none',
+                    padding: '5px 10px',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.3s ease', // Add a smooth transition for the color change
+                  }}
+                  onClick={() => handleRemove(doctor._id)}
+                  onMouseEnter={(e) => (e.target.style.backgroundColor = 'crimson')}
+                  onMouseLeave={(e) => (e.target.style.backgroundColor = 'gray')}
+                >
+                  Remove
+                </button>
               </td>
             </tr>
           ))}

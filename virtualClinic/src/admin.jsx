@@ -7,20 +7,6 @@ import Navbar from './navbar';
 function AdminDashboard() {
   const [mainAdmin, setMainAdmin] = useState(false);
   const navigate = useNavigate();
-  useEffect(() => {
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`)
-      .then((response) => {
-        const responseData = response.data;
-        if (responseData.type !== "admin" || responseData.in !== true) {
-          navigate('/login')
-          return null;
-        }
-        if (responseData.username == "admin") {
-          setMainAdmin(true);
-        }
-      })
-  }, []);
 
   return (
     <div>

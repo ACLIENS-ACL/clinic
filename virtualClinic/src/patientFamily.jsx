@@ -2,65 +2,85 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
 
 const containerStyle = {
   fontFamily: 'Arial, sans-serif',
-  margin: '20px',
-  padding: '20px',
+  margin: 'auto',
   border: '1px solid #ccc',
-  borderRadius: '5px',
-  boxShadow: '0 0 5px rgba(0, 0, 0, 0.1)',
+  marginTop: '0', // Add this line to remove the white space above
 };
 
 const headerStyle = {
-    fontWeight: 'bold',
-    fontSize: '24px',
-    marginBottom: '20px',
-    textAlign: 'center', // Add this line to center align the text
-  };
+  fontSize: '24px',
+  color: '#333',
+  textAlign: 'center',
+  marginBottom: '20px',
+  marginTop: '30px'
+};
+
+const listStyle = {
+  listStyleType: 'none',
+  padding: '0',
+  margin: '0 200px'
+};
 
 const listItemStyle = {
-  marginBottom: '20px',
-  border: '1px solid #ccc',
+  margin: '15px 0',
   padding: '15px',
+  border: '1px solid #ddd',
   borderRadius: '5px',
-  boxShadow: '0 0 5px rgba(0, 0, 0, 0.1)',
+  background: '#fff',
+  boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
 };
 
 const labelStyle = {
   fontWeight: 'bold',
+  marginRight: '5px',
 };
 
 const dividerStyle = {
-  borderTop: '1px solid #ccc',
-  margin: '15px 0',
-};
-
-const listStyle = {
-  listStyle: 'none',
-  padding: 0,
+  margin: '20px 0',
+  borderBottom: '1px solid #ccc',
 };
 
 function PatientFamilyMembers() {
   const navigate = useNavigate();
   useEffect(() => {
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`)
-      .then((response) => {
-        const responseData = response.data;
-        if (responseData.type.toLowerCase() !== "patient" || responseData.in !== true) {
-          navigate('/login')
-          return null;
-        }
-      })
-  }, []);
+    try {
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+      if (!token) {
+        // If the token doesn't exist, navigate to the login page
+        navigate('/login');
+        return;
+      }
+
+      // Decode the token to get user information
+      const decodedToken = jwtDecode(token);
+      const userType = decodedToken.type.toLowerCase();
+
+      if (userType !== 'patient') {
+        // If the user is not a patient or is not logged in, navigate to the login page
+        navigate('/login');
+      }
+    } catch (error) {
+
+    }
+  }, [navigate]);
 
   const [familyMembers, setFamilyMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   useEffect(() => {
-    axios.get('http://localhost:3001/view-family-members')
+    const token = localStorage.getItem('token');
+    axios.get('http://localhost:3001/view-family-members', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then(response => {
         setFamilyMembers(response.data);
         setLoading(false);
@@ -80,7 +100,7 @@ function PatientFamilyMembers() {
   }
   return (
     <div style={containerStyle}>
-      <Navbar/>
+      <Navbar />
       <h1 style={headerStyle}>Family Members</h1>
       {familyMembers.length === 0 ? (
         <p>No family members found.</p>

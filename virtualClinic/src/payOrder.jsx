@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useParams } from 'react-router-dom';
@@ -8,7 +8,7 @@ import { jwtDecode } from "jwt-decode";
 
 const stripePromise = loadStripe('pk_test_51O88P5HzoCWXbTYqT8xDcGsLRVepjiG6k4KqILsc5mIxkTraEfRqAP9N6Vr3yRdQHDcuB8R4M5C754kjshcm1JtM0051zRZXTh');
 
-const PaymentForm = ({ totalPaymentDue, type, packageId, self, selectedFamilyMembers }) => {
+const PaymentForm = ({ totalPaymentDue, medicines, address, name, pres }) => {
     const navigate = useNavigate();
     useEffect(() => {
         try {
@@ -45,7 +45,7 @@ const PaymentForm = ({ totalPaymentDue, type, packageId, self, selectedFamilyMem
                     Authorization: `Bearer ${token}`,
                 },
             });
-            handleSubscribeClickToServer();
+            handleSubscribeClickToServer("Wallet");
             alert("Successful");
             navigate('/patient')
             // Handle the server response, e.g., redirect to a success page
@@ -56,23 +56,24 @@ const PaymentForm = ({ totalPaymentDue, type, packageId, self, selectedFamilyMem
             console.error('Wallet payment error:', error);
         }
     };
-    const handleSubscribeClickToServer = () => {
+    const handleSubscribeClickToServer = (paymentMethod) => {
         const token = localStorage.getItem('token');
-        const familyMembersArray = selectedFamilyMembers ? selectedFamilyMembers.split(',') : [];
         const data = {
-            self: self,
-            packageId: packageId,
-            familyMembers: familyMembersArray,
+            medicines: medicines,
+            address: address,
+            total: totalPaymentDue,
+            paymentMethod: paymentMethod,
+            name
         };
 
         // Make an HTTP POST request to the server
-        axios.post('http://localhost:3001/subscribe', data, {
+        axios.post('http://localhost:3002/place-order-clinic', data, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
         })
             .then((response) => {
-                // Handle the server response, e.g., redirect to a success page
+                axios.put(`http://localhost:3001/fillPres/${pres}`);
             })
             .catch((error) => {
                 // Handle the error, e.g., show an error message
@@ -106,11 +107,10 @@ const PaymentForm = ({ totalPaymentDue, type, packageId, self, selectedFamilyMem
 
                 console.error(error);
             } else {
-                if (type == "packagePayment") {
-                    handleSubscribeClickToServer();
-                    alert("Successful");
-                    navigate('/patient')
-                }
+                handleSubscribeClickToServer("Credit Card");
+                alert("Successful");
+                navigate('/patient')
+
                 console.log('Payment successful');
             }
         } else if (selectedPaymentMethod === 'wallet') {
@@ -230,13 +230,18 @@ const App = () => {
         alignItems: 'center',
         height: '100vh',
     };
-    const { totalPaymentDue, type, packageId, self, selectedFamilyMembers } = useParams();
+    const location = useLocation();
+
+    // Access state from the location object
+    const { state } = location;
+
+    const { totalAmount, address, medicines, name, pres } = state;
 
 
     return (
         <div style={containerStyle} className="app-container">
             <Elements stripe={stripePromise}>
-                <PaymentForm totalPaymentDue={totalPaymentDue} type={type} packageId={packageId} self={self} selectedFamilyMembers={selectedFamilyMembers} />
+                <PaymentForm totalPaymentDue={totalAmount} address={address} medicines={medicines} name={name} pres={pres} />
             </Elements>
         </div>
     );

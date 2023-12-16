@@ -3,27 +3,46 @@ import { Elements, CardElement, useStripe, useElements } from '@stripe/react-str
 import { loadStripe } from '@stripe/stripe-js';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { jwtDecode } from "jwt-decode";
 
 const stripePromise = loadStripe('pk_test_51O88P5HzoCWXbTYqT8xDcGsLRVepjiG6k4KqILsc5mIxkTraEfRqAP9N6Vr3yRdQHDcuB8R4M5C754kjshcm1JtM0051zRZXTh');
 
 const PaymentForm = ({ totalPaymentDue, type, doctorId, dateTime, familyMemberId }) => {
     const navigate = useNavigate();
     useEffect(() => {
-        // Fetch admin data from the server
-        axios.get(`http://localhost:3001/get-user-type`).then((response) => {
-            const responseData = response.data;
-            if (responseData.type !== 'patient' || responseData.in !== true) {
+        try {
+            // Get the token from local storage
+            const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+            if (!token) {
+                // If the token doesn't exist, navigate to the login page
                 navigate('/login');
-                return null;
+                return;
             }
-        });
-    }, []);
+
+            // Decode the token to get user information
+            const decodedToken = jwtDecode(token);
+            const userType = decodedToken.type.toLowerCase();
+
+            if (userType !== 'patient') {
+                // If the user is not a patient or is not logged in, navigate to the login page
+                navigate('/login');
+            }
+        } catch (error) {
+
+        }
+    }, [navigate]);
     const handleWalletPayment = async () => {
+        const token = localStorage.getItem('token');
         // You need to implement the server-side logic for handling wallet payments.
         // Make an Axios call to your server endpoint for wallet payments.
         try {
             const response = await axios.post('http://localhost:3001/wallet-payment', {
                 totalPaymentDue
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
             });
             reserveSlot();
             alert("Successful");
@@ -38,7 +57,7 @@ const PaymentForm = ({ totalPaymentDue, type, doctorId, dateTime, familyMemberId
     };
     const reserveSlot = async () => {
         // Prevent the default behavior of the click event
-
+        const token = localStorage.getItem('token');
         try {
             if (type === "self") {
                 // Make a POST request to your server
@@ -46,6 +65,10 @@ const PaymentForm = ({ totalPaymentDue, type, doctorId, dateTime, familyMemberId
                     doctorId,
                     dateTime,
                     totalPaymentDue
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
             }
             else if (type === "familyMember") {
@@ -55,6 +78,10 @@ const PaymentForm = ({ totalPaymentDue, type, doctorId, dateTime, familyMemberId
                     dateTime,
                     familyMemberId,
                     totalPaymentDue
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
             }
         } catch (error) {

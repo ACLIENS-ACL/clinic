@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
 
 function DoctorRegistrationForm() {
   const [doctorInfo, setDoctorInfo] = useState({});
@@ -16,18 +17,36 @@ function DoctorRegistrationForm() {
     'Pediatrics',
   ];
   useEffect(() => {
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`)
-      .then((response) => {
-        const responseData = response.data;
-        if (responseData.type.toLowerCase() !== "doctornotreg") {
-          navigate('/login')
-          return null;
-        }
-      })
-  }, []);
+    try {
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+      if (!token) {
+        // If the token doesn't exist, navigate to the login page
+        navigate('/login');
+        return;
+      }
+
+      // Decode the token to get user information
+      const decodedToken = jwtDecode(token);
+      const userType = decodedToken.type.toLowerCase();
+
+      if (userType !== 'doctornotreg') {
+        // If the user is not a patient or is not logged in, navigate to the login page
+        navigate('/login');
+      }
+    } catch (error) {
+
+    }
+  }, [navigate]);
+
   useEffect(() => {
-    axios.get('http://localhost:3001/get-doctor-info')
+    const token = localStorage.getItem('token');
+    axios.get('http://localhost:3001/get-doctor-info', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then((response) => {
         setDoctorInfo(response.data);
       })
@@ -55,8 +74,14 @@ function DoctorRegistrationForm() {
     };
 
     try {
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
       // Send a POST request to your server to update the doctor's information
-      await axios.put('http://localhost:3001/update-doctor-info', requestData);
+      await axios.put('http://localhost:3001/update-doctor-info', requestData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       setFormModified(false);
 
@@ -100,7 +125,7 @@ function DoctorRegistrationForm() {
 
   return (
     <div style={containerStyle}>
-      <Navbar/>
+      <Navbar />
       <h1 style={{ color: '#007BFF' }}>Doctor Registration</h1>
       <div style={{ fontSize: '18px', fontWeight: 'bold', textAlign: 'left', paddingLeft: '60vw' }}>
         <label style={{ fontSize: '20px', color: 'red' }}>Status:</label> {doctorInfo.enrolled}
@@ -164,13 +189,13 @@ function DoctorRegistrationForm() {
           onChange={handleInputChange}
           style={inputStyle}
         >
-        <option value="">Select a specialty</option>
-        {specialties.map((specialty, index) => (
-          <option key={index} value={specialty}>
-            {specialty}
-          </option>
-        ))}
-      </select>
+          <option value="">Select a specialty</option>
+          {specialties.map((specialty, index) => (
+            <option key={index} value={specialty}>
+              {specialty}
+            </option>
+          ))}
+        </select>
         <br />
 
         <label style={labelStyle}>Hourly Rate:</label>

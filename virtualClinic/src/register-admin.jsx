@@ -3,21 +3,34 @@ import { MDBContainer, MDBRow, MDBCol, MDBInput, MDBBtn } from 'mdb-react-ui-kit
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
 
 function RegistrationForm() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`)
-      .then((response) => {
-        const responseData = response.data;
-        if (responseData.type.toLowerCase() !== "admin" || responseData.in !== true) {
-          navigate('/login')
-          return null;
-        }
-      })
-  }, []);
+    try {
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+      if (!token) {
+        // If the token doesn't exist, navigate to the login page
+        navigate('/login');
+        return;
+      }
+
+      // Decode the token to get user information
+      const decodedToken = jwtDecode(token);
+      const userType = decodedToken.type.toLowerCase();
+
+      if (userType !== 'admin') {
+        // If the user is not a patient or is not logged in, navigate to the login page
+        navigate('/login');
+      }
+    } catch (error) {
+
+    }
+  }, [navigate]);
 
   const formStyle = {
     background: '#f0f0f0',
@@ -44,11 +57,13 @@ function RegistrationForm() {
       };
 
       const result = await axios.post('http://localhost:3001/add-admin', adminData);
-
       if (result.data.message === 'Admin added successfully') {
         setMessage('Admin registered successfully.');
-      } else {
-        setMessage('Username Already Exists');
+      } else if (result.data.message === 'Email Associated With an Existing Account') {
+        setMessage('Email Associated With an Existing Account');
+      }
+      else if (result.data.message === 'Usernmae Associated With an Existing Account') {
+        setMessage('Username Associated With an Existing Account');
       }
     } catch (error) {
       setMessage('An error occurred. Please try again later.');
@@ -56,52 +71,109 @@ function RegistrationForm() {
   };
 
   return (
-    <div>
+    <div style={{ fontFamily: 'Arial, sans-serif' }}>
       <Navbar />
 
-      <MDBContainer className="vh-100 d-flex justify-content-center align-items-center">
-        <MDBRow>
-          <MDBCol md="8" lg="6">
-            <form style={formStyle} onSubmit={handleSubmit}>
-              <MDBInput
-                label="Username"
+      <div style={{ fontFamily: 'Arial, sans-serif' }}>
+        <div style={{ textAlign: 'center', margin: '20px 0' }}>
+          <h2 style={{ color: '#333' }}>Register an Admin</h2>
+        </div>
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '400px',
+            margin: '0 auto',
+            padding: '20px',
+            boxSizing: 'border-box',
+            borderRadius: '8px',
+            boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
+            background: '#fff',
+          }}
+        >
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="username" style={{ display: 'block', marginBottom: '5px', color: '#555' }}>
+                Username
+              </label>
+              <input
                 type="text"
                 id="username"
                 name="username"
-                className="mb-4"
-                style={inputStyle}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  boxSizing: 'border-box',
+                  borderRadius: '5px',
+                  border: '1px solid #ccc',
+                }}
+                required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
-              <MDBInput
-                label="Email" // Add email input field
+            </div>
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="email" style={{ display: 'block', marginBottom: '5px', color: '#555' }}>
+                Email
+              </label>
+              <input
                 type="email"
                 id="email"
                 name="email"
-                className="mb-4"
-                style={inputStyle}
+                required
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  boxSizing: 'border-box',
+                  borderRadius: '5px',
+                  border: '1px solid #ccc',
+                }}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-              <MDBInput
-                label="Password"
+            </div>
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="password" style={{ display: 'block', marginBottom: '5px', color: '#555' }}>
+                Password
+              </label>
+              <input
                 type="password"
                 id="password"
                 name="password"
-                className="mb-4"
-                style={inputStyle}
+                required
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  boxSizing: 'border-box',
+                  borderRadius: '5px',
+                  border: '1px solid #ccc',
+                }}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <MDBBtn color="primary" type="submit">
-                Register
-              </MDBBtn>
-              <div className="mt-3 text-danger">{message}</div>
-            </form>
-          </MDBCol>
-        </MDBRow>
-      </MDBContainer>
+            </div>
+            <button
+              type="submit"
+              disabled={!username || !email || !password}
+              style={{
+                backgroundColor: !username || !email || !password ? 'gray' : 'navy',
+                color: '#fff',
+                padding: '10px 15px',
+                borderRadius: '4px',
+                cursor: !username || !email || !password ? 'not-allowed' : 'pointer',
+                border: 'none',
+                width: '100%',
+              }}
+            >
+              Register Admin
+            </button>
+
+            <div style={{ marginTop: '15px', textAlign: 'center', color: 'red' }}>{message}</div>
+          </form>
+        </div>
+      </div>
+
     </div>
+
   );
 }
 

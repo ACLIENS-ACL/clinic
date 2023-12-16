@@ -2,25 +2,40 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from './navbar';
+import { jwtDecode } from "jwt-decode";
 
 function AppointmentForm() {
   const navigate = useNavigate();
-  useEffect(() => {
-    // Fetch admin data from the server
-    axios.get(`http://localhost:3001/get-user-type`).then((response) => {
-      const responseData = response.data;
-      if (responseData.type !== 'doctor' || responseData.in !== true) {
-        navigate('/login');
-        return null;
-      }
-    });
-  }, []);
+
   const [selectedDateTime, setSelectedDateTime] = useState('');
   const [appointments, setAppointments] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
+  useEffect(() => {
+    try {
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
 
+      if (!token) {
+        // If the token doesn't exist, navigate to the login page
+        navigate('/login');
+        return;
+      }
+
+      // Decode the token to get user information
+      const decodedToken = jwtDecode(token);
+      const userType = decodedToken.type.toLowerCase();
+
+      if (userType !== 'doctor') {
+        // If the user is not a patient or is not logged in, navigate to the login page
+        navigate('/login');
+      }
+    } catch (error) {
+
+    }
+  }, [navigate]);
   const addAppointment = (e) => {
     e.preventDefault();
+
 
     if (selectedDateTime) {
       setErrorMessage(''); // Clear any existing error message
@@ -36,7 +51,7 @@ function AppointmentForm() {
         setErrorMessage('Appointment must be scheduled for a future date and time.');
       }
     } else {
-      setErrorMessage('Datetime must be entered.');
+      setErrorMessage('Choose a Slot to be added!');
     }
   };
 
@@ -50,8 +65,15 @@ function AppointmentForm() {
     e.preventDefault();
 
     try {
-      // Send the list of appointments to your backend
-      await axios.post('http://localhost:3001/doctors/add-appointments', { appointments });
+      // Get the token from local storage
+      const token = localStorage.getItem('token'); // Replace 'yourAuthTokenKey' with your actual key
+
+      // Send the list of appointments to your backend along with the token
+      await axios.post('http://localhost:3001/doctors/add-appointments', { appointments }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       // Clear the appointments list
       setAppointments([]);
@@ -62,80 +84,103 @@ function AppointmentForm() {
   };
 
   const containerStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: 'auto',
+    width: '30%',
+    margin: '0 auto',
     padding: '20px',
-    border: '1px solid #ccc',
-    borderRadius: '5px',
-    background: '#f3f3f3',
-    width: '50%'
+    fontFamily: 'Arial, sans-serif',
+    borderRadius: '8px',
+    boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
   };
 
   const formStyle = {
-    width: '300px',
+    display: 'flex',
+    flexDirection: 'column',
+    marginBottom: '20px',
   };
 
   const inputStyle = {
-    width: '100%',
     padding: '10px',
-    fontSize: '16px',
     border: '1px solid #ccc',
-    borderRadius: '5px',
+    borderRadius: '4px',
+    width: '70%',
+    marginRight:'25px'
   };
 
   const buttonStyle = {
-    background: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
+    backgroundColor: 'grey',
+    color: '#fff',
     padding: '10px 20px',
-    fontSize: '16px',
+    border: 'none',
+    borderRadius: '3px',
     cursor: 'pointer',
-    marginTop: '10px',
-    width: '300px',
+    fontSize: '16px',
+  };
+  const buttonStyleTwo = {
+    backgroundColor: 'gray',
+    color: '#fff',
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '3px',
+    cursor: 'pointer',
+    fontSize: '16px',
+    marginLeft:'30%'
   };
 
   const errorStyle = {
     color: 'red',
+    marginTop: '10px',
   };
 
   return (
-    <div style={containerStyle}>
+    <div >
       <Navbar />
-      <h1>Add Appointments</h1>
-      <form style={formStyle}>
-        <label>Appointment Slot:</label>
-        <input
-          type="datetime-local"
-          id="searchDateTime"
-          value={selectedDateTime}
-          onChange={(e) => setSelectedDateTime(e.target.value)}
-          style={inputStyle}
-
-        />
-        <button onClick={addAppointment} style={buttonStyle}>
-          Add Slot
-        </button>
-      </form>
-      {errorMessage && <p style={errorStyle}>{errorMessage}</p>}
-      <div>
-        {appointments.map((appointment, index) => (
-          <div key={index} style={{ margin: '10px 0' }}>
-            <span>Date and Time: {appointment.toLocaleString()}</span>
-            <button onClick={() => removeAppointment(index)} style={{ marginLeft: '10px' }}>
-              X
+      <br></br>
+      <div style={containerStyle}>
+        <br></br>
+        <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Add Appointments</h2>
+        <form style={formStyle}>
+          <p style={{ color: 'black', fontSize: '14px', fontStyle: 'italic' }}
+          ><strong>Choose slots to be available for the patients to reserve</strong></p>
+          <label style={{ marginBottom: '5px' }}>Appointment Slot:</label>
+          <div style={{ display: 'flex', alignItems: 'center', marginTop:'5px' }}>
+            <input
+              type="datetime-local"
+              id="searchDateTime"
+              value={selectedDateTime}
+              onChange={(e) => setSelectedDateTime(e.target.value)}
+              style={{ ...inputStyle }}
+            />
+            <button onClick={addAppointment} style={buttonStyle} onMouseEnter={(e) => (e.target.style.backgroundColor = 'navy')}
+                onMouseLeave={(e) => (e.target.style.backgroundColor = 'gray')}>
+              Add Slot
             </button>
           </div>
-        ))}
+
+        </form>
+        {errorMessage && <p style={errorStyle}>{errorMessage}</p>}
+        <div>
+          {appointments.map((appointment, index) => (
+            <div key={index} style={{ margin: '10px 0', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ marginTop: '5px' }}>Date and Time: {appointment.toLocaleString()}</span>
+              <button onClick={() => removeAppointment(index)} style={{ backgroundColor: 'gray', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px 10px' }} onMouseEnter={(e) => (e.target.style.backgroundColor = '#dc3545')}
+                onMouseLeave={(e) => (e.target.style.backgroundColor = 'gray')}>
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: appointments.length === 0 ? 'none' : 'block' }}>
+          <p style={{ color: 'black', fontSize: '13px', fontStyle: 'italic' }}
+          ><strong>By clicking add appointments all the confirmed slots will be added as appoitnment slots</strong></p>
+          <button onClick={handleFormSubmit} style={buttonStyleTwo} onMouseEnter={(e) => (e.target.style.backgroundColor = 'navy')}
+                onMouseLeave={(e) => (e.target.style.backgroundColor = 'gray')}>
+            Add Appointments
+          </button>
+        </div>
       </div>
-      <button onClick={handleFormSubmit} style={buttonStyle}>
-        Add Appointments
-      </button>
     </div>
   );
+
 }
 
 export default AppointmentForm;
