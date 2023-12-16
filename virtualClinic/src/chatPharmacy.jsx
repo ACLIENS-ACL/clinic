@@ -77,7 +77,7 @@ const ChatApp = () => {
         e.preventDefault();
         const message = messageInput;
         appendMessage(`You: ${message}`, true);
-        socket.current.emit('send-chat-message', { message, userId, roomId });
+        socket.emit('send-chat-message', { message, userId, roomId });
         setMessageInput('');
     };
 
