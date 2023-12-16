@@ -489,3 +489,7 @@ Here is a list of all the routes available in the project:
 - **POST:** `/createVideoRoom`
 - **POST:** `/createVideoRoomDoctor`
 
+#Tests
+![Testing doctor Requests](https://github.com/ACLIENS-ACL/clinic/blob/main/Testing%20doctor%20Requests.png)
+![Testing Adding family Members](https://github.com/ACLIENS-ACL/clinic/blob/main/Testing%20Adding%20family%20Members.png)
+![Testing health Packages](https://github.com/ACLIENS-ACL/clinic/blob/main/Testing%20health%20Packages.png)
