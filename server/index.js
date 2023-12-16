@@ -67,7 +67,7 @@ const activeUsers = {};
 const activeRooms = {};
 const io = require('socket.io')({
   cors: {
-    origin: "http://127.0.0.1:5173",  // Replace with your actual frontend origin
+    origin: ["http://127.0.0.1:5173","http://localhost:5173"],  // Replace with your actual frontend origin
     methods: ["GET", "POST"]
   }
 }).listen(3003);
